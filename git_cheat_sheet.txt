@@ -4,6 +4,22 @@ Download/install git (command line)
 2. git config --global user.email "doej21@up.edu"
 3. Make a new directory called chemResearch 
 4. git clone https://github.com/chemsensor/chemicalVision.git
-5. git branch John Doe 
+5. git branch John //creates new branch John
+6. git checkout John //sets current branch as John 
+
+
+BEFORE STARTING WORK: This is essential
+git pull origin master
+
+Do work/write code:
+1. git add .
+2. git commit -m "I created new functionality"
+3. git push 
+
+Go to Github website:
+1. Click New pull request 
+2. select master <- John //pull request to push John branch into master 
+3. Write a message in the comment box
+4. Click Create Pull Request 
 
 
