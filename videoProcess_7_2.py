@@ -564,6 +564,8 @@ for chan in range(256):
 #open a dialog to allow user to select a file
 root = tk.Tk()
 root.withdraw()
+root.wm_attributes('-topmost', 1)
+
 file_path = askopenfilename(initialdir='/home/sensor/Documents/',filetypes=[('video files', '.mkv'),('video files', '.MOV'),('all files', '.*')])
 #if no file is selected try reading from a connected webcam for up to 5 minutes
 
@@ -597,6 +599,7 @@ if len(file_path)==0:
     if (useQRinImage=="f") | (useQRinImage=="F"):
         root = tk.Tk()
         root.withdraw()
+        root.wm_attributes('-topmost', 1)
         settings_file_path = askopenfilename(initialdir='/home/sensor/',filetypes=[('settings files', '.set'),('all files', '.*')])
         settingsFile = open(settings_file_path,'r')
         settingString=settingsFile.read()
@@ -610,6 +613,7 @@ else:
     if (useQRinImage=="f") | (useQRinImage=="F"):
         root = tk.Tk()
         root.withdraw()
+        root.wm_attributes('-topmost', 1)
         settings_file_path = askopenfilename(initialdir='/home/sensor/',filetypes=[('settings files', '.set'),('all files', '.*')])
         settingsFile = open(settings_file_path,'r')
         settingString=settingsFile.read()
