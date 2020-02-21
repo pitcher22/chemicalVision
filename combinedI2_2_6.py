@@ -1512,91 +1512,91 @@ while runFlag:
                                 
                                 #returnAddress emailSubject
                             
-                            
-                            
-                                subject = "Processed I2 Data "+emailSubject
-                                X=ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool]
-                                Y=ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1][dfBool]
-                                fit=PolyReg(X,Y,1)
-                                rate=-fit['coefs'][0]
-                                subjectPos=email_subject.lower().find('t')+1
-                                tempC=float(email_subject[subjectPos:subjectPos+2])
-                                tempK=tempC+273.15
-                                body = r"Based on your email subject the temperature is "+"{:g}".format(tempC)+" C. \n"
-                                body=body+r"Based on your video the rate is proportional to "+"{:.3g}".format(rate)+" dAU/dt. \n"
-
-                                body=body+r"For an  Arrhenius plot the x-coordinate (1/T where temp is in Kelvin) is "+"{:.4g}".format(1/tempK)+" 1/K. \n"
-                                body=body+r"For an  Arrhenius plot the y-coordinate (ln(rate)) is "+"{:.4g}".format(np.log(rate))
-                                
-                                sender_email = FROM_EMAIL
-                                receiver_email = returnAddress
-                                #receiver_email = "cantrell.kevin@gmail.com"
-                                password = FROM_PWD
-                                
-                                # Create a multipart message and set headers
-                                message = MIMEMultipart()
-                                message["From"] = sender_email
-                                message["To"] = receiver_email
-                                message["Subject"] = subject
-                                #message["Bcc"] = receiver_email  # Recommended for mass emails
-                                
-                                # Add body to email
-                                message.attach(MIMEText(body, "plain"))
-                                
-                                filename = "document.pdf"  # In same directory as script
-                                #filename = processedFileList[0]
-                                filename = file_path+"Data.xlsx"
-                                # Open PDF file in binary mode
-                                with open(filename, "rb") as attachment:
-                                    # Add file as application/octet-stream
-                                    # Email client can usually download this automatically as attachment
-                                    part = MIMEBase("application", "octet-stream")
-                                    part.set_payload(attachment.read())
-                                
-                                # Encode file in ASCII characters to send by email    
-                                encoders.encode_base64(part)
-                                
-                                # Add header as key/value pair to attachment part
-                                part.add_header(
-                                    "Content-Disposition",
-                                    f"attachment; filename= {filename}",
-                                )
-                                
-                                # Add attachment to message and convert message to string
-                                message.attach(part)
-                                
-
-                                filename = file_path+"Processed.mp4"
-                                # Open PDF file in binary mode
-                                with open(filename, "rb") as attachment:
-                                    # Add file as application/octet-stream
-                                    # Email client can usually download this automatically as attachment
-                                    part = MIMEBase("application", "octet-stream")
-                                    part.set_payload(attachment.read())
-                                
-                                # Encode file in ASCII characters to send by email    
-                                encoders.encode_base64(part)
-                                
-                                # Add header as key/value pair to attachment part
-                                part.add_header(
-                                    "Content-Disposition",
-                                    f"attachment; filename= {filename}",
-                                )
-                                
-                                # Add attachment to message and convert message to string
-                                message.attach(part)
-                                
-                                
-                                text = message.as_string()
-                                
-                                # Log in to server using secure context and send email
-                                context = ssl.create_default_context()
-                                with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-                                    server.login(sender_email, password)
-                                    server.sendmail(sender_email, receiver_email, text)
-        
-    # if stopFlag:
-    #     break
+                                sendemail = False
+                                if sendemail == True:
+                                    subject = "Processed I2 Data "+emailSubject
+                                    X=ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool]
+                                    Y=ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1][dfBool]
+                                    fit=PolyReg(X,Y,1)
+                                    rate=-fit['coefs'][0]
+                                    subjectPos=email_subject.lower().find('t')+1
+                                    tempC=float(email_subject[subjectPos:subjectPos+2])
+                                    tempK=tempC+273.15
+                                    body = r"Based on your email subject the temperature is "+"{:g}".format(tempC)+" C. \n"
+                                    body=body+r"Based on your video the rate is proportional to "+"{:.3g}".format(rate)+" dAU/dt. \n"
+    
+                                    body=body+r"For an  Arrhenius plot the x-coordinate (1/T where temp is in Kelvin) is "+"{:.4g}".format(1/tempK)+" 1/K. \n"
+                                    body=body+r"For an  Arrhenius plot the y-coordinate (ln(rate)) is "+"{:.4g}".format(np.log(rate))
+                                    
+                                    sender_email = FROM_EMAIL
+                                    #receiver_email = returnAddress
+                                    receiver_email = "chem.sensor.up@gmail.com"
+                                    password = FROM_PWD
+                                    
+                                    # Create a multipart message and set headers
+                                    message = MIMEMultipart()
+                                    message["From"] = sender_email
+                                    message["To"] = receiver_email
+                                    message["Subject"] = subject
+                                    #message["Bcc"] = receiver_email  # Recommended for mass emails
+                                    
+                                    # Add body to email
+                                    message.attach(MIMEText(body, "plain"))
+                                    
+                                    filename = "document.pdf"  # In same directory as script
+                                    #filename = processedFileList[0]
+                                    filename = file_path+"Data.xlsx"
+                                    # Open PDF file in binary mode
+                                    with open(filename, "rb") as attachment:
+                                        # Add file as application/octet-stream
+                                        # Email client can usually download this automatically as attachment
+                                        part = MIMEBase("application", "octet-stream")
+                                        part.set_payload(attachment.read())
+                                    
+                                    # Encode file in ASCII characters to send by email    
+                                    encoders.encode_base64(part)
+                                    
+                                    # Add header as key/value pair to attachment part
+                                    part.add_header(
+                                        "Content-Disposition",
+                                        f"attachment; filename= {filename}",
+                                    )
+                                    
+                                    # Add attachment to message and convert message to string
+                                    message.attach(part)
+                                    
+    
+                                    filename = file_path+"Processed.mp4"
+                                    # Open PDF file in binary mode
+                                    with open(filename, "rb") as attachment:
+                                        # Add file as application/octet-stream
+                                        # Email client can usually download this automatically as attachment
+                                        part = MIMEBase("application", "octet-stream")
+                                        part.set_payload(attachment.read())
+                                    
+                                    # Encode file in ASCII characters to send by email    
+                                    encoders.encode_base64(part)
+                                    
+                                    # Add header as key/value pair to attachment part
+                                    part.add_header(
+                                        "Content-Disposition",
+                                        f"attachment; filename= {filename}",
+                                    )
+                                    
+                                    # Add attachment to message and convert message to string
+                                    message.attach(part)
+                                    
+                                    
+                                    text = message.as_string()
+                                    
+                                    # Log in to server using secure context and send email
+                                    context = ssl.create_default_context()
+                                    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                                        server.login(sender_email, password)
+                                        server.sendmail(sender_email, receiver_email, text)
+            
+        # if stopFlag:
+        #     break
         
 
 saveSettings = input("Save current settings (Y/n)?")
