@@ -54,6 +54,7 @@ import email.utils
 from time import strftime
 import sys
 import ssl
+import os
 
 from email import encoders
 from email.mime.base import MIMEBase
@@ -69,7 +70,8 @@ SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
 
 if osType=='linux':
-    filePath=r'/home/cantrell/Downloads/EmailedVideo'
+#    filePath=r'/home/cantrell/Downloads/EmailedVideo'
+    filePath=os.getcwd()+'/EmailedVideo'
 elif osType=='win32':
 #    filePath=r'C:\Users\Public\Dropbox\ChemicalVision\EmailedVideo'
     filePath=r'C:\\Users\\Public\\'
@@ -87,7 +89,11 @@ referenceFlag=True
 settingsFlag=False    
 font = cv2.FONT_HERSHEY_SIMPLEX
 #fourcc = cv2.VideoWriter_fourcc(*'XVID')
-fourcc = cv2.VideoWriter_fourcc(*'MP42')
+#fourcc = cv2.VideoWriter_fourcc(*'MP42')
+#fourcc = cv2.VideoWriter_fourcc(*'H264')
+#fourcc = cv2.VideoWriter_fourcc(*'X264')
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+
 RecordFlag=True
 overlayFlag=True
 displayHelp=True
@@ -664,14 +670,20 @@ while runFlag:
     #            msg = email.message_from_string(response_part[1])
                 msg = email.message_from_string(response_part[1].decode())
                 timestamp=time.mktime(email.utils.parsedate(msg['Date']))-(greenwichTimeAdjustment*60*60)
-
+                print('Considering email: '+msg['subject'])
                 if (timestamp>=emailStartTime) & (timestamp<=endTime):
                     email_subject = msg['subject']
                     if (email_subject==None) | (email_subject==''):
                         email_subject='No Subject'
+                    print('In time range email: '+email_subject)
                     for part in msg.walk():
-                        if part.get_content_maintype() == 'video':
-                                attachInfo=part['Content-Disposition']
+                        attachInfo=part['Content-Disposition']
+                        attachFlag=False
+                        if attachInfo!=None:
+                            if part['Content-Disposition'][:10]=='attachment':
+                                attachFlag=True
+                        if (part.get_content_maintype() == 'video') | (attachFlag):
+                                
                                 #timeStruct=time.localtime(timestamp)
                                 
                                 #find creation date and look to the next semicolon
@@ -689,7 +701,10 @@ while runFlag:
                                 else:
                                     timeStruct=time.localtime(timestamp)
                                     dateName=strftime("%Y_%m_%d_%H:%M", timeStruct)
-                                returnAddress =  msg['Return-Path']
+                                if msg['Return-Path']==None:
+                                    returnAddress=msg['From'][msg['From'].find('<')+1:msg['From'].find('>')]
+                                else:
+                                    returnAddress =  msg['Return-Path']
                                 if osType=='linux':
                                     bad_chars=[":","<",">"]
                                     for c in bad_chars : 
@@ -763,12 +778,16 @@ while runFlag:
                                     currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)
                                 videoStartTime=time.time()
                                 if RecordFlag:
+                                    if osType=='linux':
+                                        outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
+                                    if osType=='win32':
+                                        outFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Processed.mp4'
                                     if iTimeLapseFlag:
-                                        outp = cv2.VideoWriter(file_path+"Processed.mp4",fourcc, 10, (DisplayWidth, DisplayHeight))
+                                        outp = cv2.VideoWriter(outFileName,fourcc, 10, (DisplayWidth, DisplayHeight))
                                     elif aTimeLapseFlag:
-                                        outp = cv2.VideoWriter(file_path+"Processed.mp4",fourcc, 10, (DisplayWidth, DisplayHeight))
+                                        outp = cv2.VideoWriter(outFileName,fourcc, 10, (DisplayWidth, DisplayHeight))
                                     else:
-                                        outp = cv2.VideoWriter(file_path+"Processed.mp4",fourcc, frameRate, (DisplayWidth, DisplayHeight))
+                                        outp = cv2.VideoWriter(outFileName,fourcc, frameRate, (DisplayWidth, DisplayHeight))
                                 while(liveCapture | (currentFrame<=TotalFrames) ):
                                     DisplayWidth=dictSet['dsp wh'][0]
                                     DisplayHeight=dictSet['dsp wh'][1]
@@ -1407,8 +1426,12 @@ while runFlag:
                                 dfMean=pd.DataFrame(data=ParameterStats[0:12,0,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfStdev=pd.DataFrame(data=ParameterStats[0:12,1,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfMost=pd.DataFrame(data=ParameterStats[0:12,2,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
-                            
-                                writer = pd.ExcelWriter(file_path+"Data.xlsx", engine='xlsxwriter')
+
+                                if osType=='linux':
+                                    outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
+                                if osType=='win32':
+                                    outExcelFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Data.xlsx'
+                                writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
                                 workbook  = writer.book
                                 minArea=2
                                 #maxArea=50000
