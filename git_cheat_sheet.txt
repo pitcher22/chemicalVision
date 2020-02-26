@@ -5,6 +5,7 @@ Download/install git (command line)
 3. Make a new directory called chemResearch
 3B. Change to this directory
 4. git clone https://github.com/chemsensor/chemicalVision.git
+4B. Change to chemicalVision subdirectory
 5. git branch John //creates new branch John
 6. git checkout John //sets current branch as John 
 
