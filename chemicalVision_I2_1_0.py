@@ -52,10 +52,10 @@ else:
     from tkinter.filedialog import asksaveasfilename
  
 if versionOS=='W':
-    upArrow=38
-    dnArrow=40
-    ltArrow=37
-    rtArrow=39
+    ltArrow=2424832
+    upArrow=2490368
+    rtArrow=2555904
+    dnArrow=2621440
     filePath=os.getcwd()+'\\EmailedVideo'
     fourcc = cv2.VideoWriter_fourcc(*'MP42')
     #fourcc = cv2.VideoWriter_fourcc(*'XVID')

@@ -11,7 +11,7 @@ import numpy as np
 runFlag=True
 while runFlag:
     displayFrame = np.zeros((200, 200, 3), np.uint8)
-    keypress=cv2.waitKey(20000) & 0xFF
+    keypress=cv2.waitKeyEx(20000) 
     print(keypress)
     cv2.putText(displayFrame,str(keypress),(50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.4,(255,255,255),1,cv2.LINE_AA)
     cv2.imshow('Display', displayFrame)

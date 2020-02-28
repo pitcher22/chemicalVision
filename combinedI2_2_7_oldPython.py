@@ -1,99 +1,93 @@
+"""
+SETUP
+#all imports, OS specific settings, read/load settings file
+#goals: all values and flags set in a separate file (*.set), Python 2.7 and 3.X and OS independent
+#tactics/issues: store the gmail info not as plaintext (pickle?)
+lookup tables here as well 588to602
+get rid of prompt and read settings from a file 606to621
+#leave out QRcode stuff for now
+"""
 from __future__ import division
 from __future__ import print_function
-
-import time
-import cv2
-import numpy as np
-#import os
-#import datetime
-#import time
-try:
-    import Tkinter as tk
-    from tkFileDialog import askopenfilename
-    from tkFileDialog import asksaveasfilename
-except ImportError:
-    import tkinter as tk
-    from tkinter.filedialog import askopenfilename
-    from tkinter.filedialog import asksaveasfilename
-
-try:
-    input=raw_input
-except NameError:
-    pass
-
-#import matplotlib.pyplot as plt
-import pandas as pd
-#import struct
-try:
-    import zbar
-    decodedQR=False
-except ImportError:
-    print("QR not yet supported")
-    decodedQR=True
-    
-from PIL import Image
-
 import sys
-if sys.platform=='win32':
-    upArrow=38
-    dnArrow=40
-    ltArrow=37
-    rtArrow=39
-else:
-    upArrow=82
-    dnArrow=84
-    ltArrow=81
-    rtArrow=83
-    
+import os
+import time
+import numpy as np
+import pandas as pd
+import cv2
 import smtplib
-#import time
 import imaplib
 import email
-#import os
 import email.utils
 from time import strftime
-import sys
 import ssl
-import os
-
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+#import datetime
+#import matplotlib.pyplot as plt
 
-osType=sys.platform
+if sys.version[0:1]=='3':
+    versionPython=3
+else:
+    versionPython=2
 
+if sys.platform=='win32':
+    versionOS='W'
+elif sys.platform=='linux':
+    versionOS='L'
+elif sys.platform=='darwin':
+    versionOS='M'
+    
+if versionPython==2:
+    import Tkinter as tk
+    from tkFileDialog import askopenfilename
+    from tkFileDialog import asksaveasfilename
+    input=raw_input
+else:
+    import tkinter as tk
+    from tkinter.filedialog import askopenfilename
+    from tkinter.filedialog import asksaveasfilename
+ 
+if versionOS=='W':
+    ltArrow=2424832
+    upArrow=2490368
+    rtArrow=2555904
+    dnArrow=2621440
+    filePath=os.getcwd()+'\\EmailedVideo'
+    fourcc = cv2.VideoWriter_fourcc(*'MP42')
+    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #fourcc = cv2.VideoWriter_fourcc(*'H264')
+    #fourcc = cv2.VideoWriter_fourcc(*'X264')
+elif versionOS=='L':
+    ltArrow=81
+    upArrow=82
+    rtArrow=83
+    dnArrow=84
+    filePath=os.getcwd()+'/EmailedVideo'
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+
+font = cv2.FONT_HERSHEY_SIMPLEX
+    
 ORG_EMAIL   = "@gmail.com"
 FROM_EMAIL  = "chem.sensor.up" + ORG_EMAIL
 FROM_PWD    = "RubberDuck1"
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
-
-if osType=='linux':
-#    filePath=r'/home/cantrell/Downloads/EmailedVideo'
-    filePath=os.getcwd()+'/EmailedVideo'
-elif osType=='win32':
-#    filePath=r'C:\Users\Public\Dropbox\ChemicalVision\EmailedVideo'
-    filePath=os.getcwd()+'\\EmailedVideo'
+ 
 emailStartTime=time.mktime((2019,2,6,0,0,0,0,0,-1))
 endTime=time.mktime((2020,2,14,18,30,0,0,0,-1))
-#emailStartTime=0
 dayLightSavings=False
 
 if dayLightSavings:
     greenwichTimeAdjustment = 7
 else:
     greenwichTimeAdjustment = 8
+    
 maskDiagnostic=False    
 referenceFlag=True
 settingsFlag=False    
-font = cv2.FONT_HERSHEY_SIMPLEX
-#fourcc = cv2.VideoWriter_fourcc(*'XVID')
-#fourcc = cv2.VideoWriter_fourcc(*'MP42')
-#fourcc = cv2.VideoWriter_fourcc(*'H264')
-#fourcc = cv2.VideoWriter_fourcc(*'X264')
-fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-
 RecordFlag=True
 overlayFlag=True
 displayHelp=True
@@ -212,8 +206,6 @@ if StoredSettingsFlag==False:
     dictSet=eval(settingString)
     dictUL=eval(upperLimitString)
     
-
-
 def hyst(x, th_lo, th_hi, initial = False):
     # http://stackoverflow.com/questions/23289976/how-to-find-zero-crossings-with-hysteresis
     hi = x >= th_hi
@@ -609,9 +601,10 @@ if (useQRinImage=="f") | (useQRinImage=="F"):
     root = tk.Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
-    if osType=='linux':
+    
+    if versionOS=='L':
         initialdir=r'/home/cantrell/Downloads/EmailedVideo'
-    elif osType=='win32':
+    elif versionOS=='W':
         initialdir=r'C:\Users\cantrell\Dropbox (UofP)\ChemicalVision\chemicalVision'
     settings_file_path = askopenfilename(initialdir=initialdir,filetypes=[('settings files', '.set'),('all files', '.*')])
     settingsFile = open(settings_file_path,'r')
@@ -706,7 +699,7 @@ while runFlag:
                                     returnAddress=msg['From'][msg['From'].find('<')+1:msg['From'].find('>')]
                                 else:
                                     returnAddress =  msg['Return-Path']
-                                if osType=='linux':
+                                if versionOS=='L':
                                     bad_chars=[":","<",">"]
                                     for c in bad_chars : 
                                         email_subject = email_subject.replace(c, ' ') 
@@ -715,7 +708,7 @@ while runFlag:
                                     for c in bad_chars : 
                                         returnAddress = returnAddress.replace(c, '') 
                                     fileName=filePath+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
-                                if osType=='win32':
+                                if versionOS=='W':
                                     bad_chars=[":","<",">"]
                                     for c in bad_chars : 
                                         email_subject = email_subject.replace(c, ' ') 
@@ -779,9 +772,9 @@ while runFlag:
                                     currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)
                                 videoStartTime=time.time()
                                 if RecordFlag:
-                                    if osType=='linux':
+                                    if versionOS=='L':
                                         outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
-                                    if osType=='win32':
+                                    if versionOS=='W':
                                         outFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Processed.mp4'
                                     if iTimeLapseFlag:
                                         outp = cv2.VideoWriter(outFileName,fourcc, 10, (DisplayWidth, DisplayHeight))
@@ -955,30 +948,7 @@ while runFlag:
                                     else:
                                         rotImage = np.copy(frame)
                                         skipFrame=False
-                                    if (decodedQR==False) & (ActiveState=="FindQR"):
-                                        bar=rotImage[395:395+400,1090:1090+400,:] #Change these hard coded numbers (its irrelevant)
-                                        gray = cv2.cvtColor(bar, cv2.COLOR_BGR2GRAY)
-                                        pil = Image.fromarray(gray)
-                                        width, height = pil.size
-                                        raw = pil.tobytes()
-                                        
-                                        image = zbar.Image(width, height, 'Y800', raw)
-                                        scanner = zbar.Scanner()
-                                        scanner.scan(image)
-                                        for symbol in image:
-                                                # do something useful with results
-                                            print ('decoded', symbol.type, 'symbol', '"%s"' % symbol.data)
-                                            dictSet=eval(symbol.data)
-                                            decodedQR=True
-                                            ActiveState="Process"
-                                        frameScale=max(frameWidth/(DisplayWidth/2.0),frameHeight/(DisplayHeight/2.0))
-                                        #frameImageScale = cv2.resize(frame, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
-                                        frameImageScale = cv2.resize(img, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
-                                        displayFrame[0:frameImageScale.shape[0],0:frameImageScale.shape[1],:]=frameImageScale
-                                        cv2.imshow('Display', displayFrame)
-                                        keypress=cv2.waitKey(1) & 0xFF
-                                        continue
-                            
+                           
                             
                                     if skipFrame==False:
                                         # Working here: Idea is to put multiple rectangular regions into rgbWBR
@@ -1357,7 +1327,7 @@ while runFlag:
                             #            else:
                                             outp.write(displayFrame)
                                         #outr.write(frame)
-                                    keypress=cv2.waitKey(1) & 0xFF
+                                    keypress=cv2.waitKeyEx(1)
                                     #print(keypress)
                                     changeCameraFlag=False
                                     if keypress == ord('q'):
@@ -1428,9 +1398,9 @@ while runFlag:
                                 dfStdev=pd.DataFrame(data=ParameterStats[0:12,1,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfMost=pd.DataFrame(data=ParameterStats[0:12,2,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
 
-                                if osType=='linux':
+                                if versionOS=='L':
                                     outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
-                                if osType=='win32':
+                                if versionOS=='W':
                                     outExcelFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Data.xlsx'
                                 writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
                                 workbook  = writer.book
