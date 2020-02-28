@@ -398,7 +398,8 @@ def AnnotateFit(fit,axisHandle,annotationText='Eq',color='black',arrow=False,xAr
     """
     Annotate a figure with information about a PolyReg() fit
     
-    see https://matplotlib.org/api/_as_gen/matplotlib.pyplot.annotate.html
+    see https://matplotlib.org/api/_as_gen/matplotlition='cw'):
+    shifthsv=np.copy(hue).astype('float')b.pyplot.annotate.html
     https://matplotlib.org/examples/pylab_examples/annotation_demo3.html
     
     Parameters
