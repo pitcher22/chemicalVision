@@ -21,6 +21,7 @@ import email
 import email.utils
 from time import strftime
 import ssl
+import pickle
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -78,11 +79,16 @@ elif versionOS=='M':
 
 font = cv2.FONT_HERSHEY_SIMPLEX
     
-ORG_EMAIL   = "@gmail.com"
-FROM_EMAIL  = "chem.sensor.up" + ORG_EMAIL
-FROM_PWD    = "RubberDuck1"
+
+openedPickleEmail = open("FROM_EMAIL.pickle", "rb")
+FROM_EMAIL = pickle.load(openedPickleEmail)
+#opening the pickled email
+openedPicklePassword = open("FROM_PWD.pickle", "rb")
+FROM_PWD = pickle.load(openedPicklePassword)
+#opening the pickled password
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
+
  
 emailStartTime=time.mktime((2019,2,6,0,0,0,0,0,-1))
 endTime=time.mktime((2020,2,14,18,30,0,0,0,-1))
