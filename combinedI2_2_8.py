@@ -1223,11 +1223,21 @@ while runFlag:
                                         moveLeftSettings = ' to move left'
                                         moveRightSettings = ' to move right'
                                         
-                                        textXlocation=2
-                                        cv2.putText(displayFrame,'"q"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, quitKey, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(quitKey)) + 10
+                                
+                                        helpInfo = [
+                                                [quitKey, pauseKey, rrBig, rrSmall, ffSmall, ffBig, showInfo, toggleSettingsKey, increaseSettingValue, decreaseSettingValue, moveUpSettings, moveDownSettings, moveLeftSettings, moveRightSettings],
+                                                ['"q"', '"p"', '"j"', '"h"', '"k"', '"l"', '"i"', '"t"', '"+"', '"-"', '"w"', '"s"', '"a"', '"d"']
+                                                ]
+                                        
+                                        
+                                        textXlocation = 2
+                                        textYlocation = DisplayHeight - 8
+                                        
+                                        for description, key in helpInfo:
+                                            cv2.putText(displayFrame, helpInfo[1][key], (textXlocation,textYlocation), font, fontScale,(255,255,255),1,cv2.LINE_AA)
+                                            textXlocation = textXlocation+15
+                                            cv2.putText(displayFrame, helpInfo[0][description], (textXlocation, textYlocation), font, fontScale,(128,128,128),1,cv2.LINE_AA)
+                                            textXlocation = textXlocation + (5*len(helpInfo[0][description])) + 10
                                         
                                         
                                         cv2.putText(displayFrame,'"p"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
@@ -1238,6 +1248,7 @@ while runFlag:
                                         
                                         cv2.putText(displayFrame,'"j"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                         textXlocation=textXlocation + 15
+                                        
                                         cv2.putText(displayFrame, rrSmall, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
                                         textXlocation=textXlocation + (5*len(rrSmall)) + 10
                                         
