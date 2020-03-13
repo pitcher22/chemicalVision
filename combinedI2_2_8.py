@@ -67,6 +67,14 @@ elif versionOS=='L':
     dnArrow=84
     filePath=os.getcwd()+'/EmailedVideo'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    
+elif versionOS=='M':
+    ltArrow=81
+    upArrow=82
+    rtArrow=83
+    dnArrow=84
+    filePath=os.getcwd()+'/EmailedVideo'
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
 font = cv2.FONT_HERSHEY_SIMPLEX
     
@@ -699,6 +707,7 @@ while runFlag:
                                     returnAddress=msg['From'][msg['From'].find('<')+1:msg['From'].find('>')]
                                 else:
                                     returnAddress =  msg['Return-Path']
+                                    
                                 if versionOS=='L':
                                     bad_chars=[":","<",">"]
                                     for c in bad_chars : 
@@ -708,6 +717,7 @@ while runFlag:
                                     for c in bad_chars : 
                                         returnAddress = returnAddress.replace(c, '') 
                                     fileName=filePath+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    
                                 if versionOS=='W':
                                     bad_chars=[":","<",">"]
                                     for c in bad_chars : 
@@ -715,9 +725,19 @@ while runFlag:
                                     for c in bad_chars : 
                                         dateName = dateName.replace(c, '_') 
                                     for c in bad_chars : 
-                                        returnAddress = returnAddress.replace(c, '') 
-                                    
+                                        returnAddress = returnAddress.replace(c, '')
                                     fileName=filePath+'\\'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    
+                                if versionOS=='M':
+                                    bad_chars=[":","<",">"]
+                                    for c in bad_chars : 
+                                        email_subject = email_subject.replace(c, ' ') 
+                                    for c in bad_chars : 
+                                        dateName = dateName.replace(c, '_') 
+                                    for c in bad_chars : 
+                                        returnAddress = returnAddress.replace(c, '') 
+                                    fileName=filePath+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    
                                 print ('Downloading and saving '+fileName)
                                 fp = open(fileName, 'wb')
                                 fileList.append(fileName)
@@ -776,6 +796,8 @@ while runFlag:
                                         outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
                                     if versionOS=='W':
                                         outFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Processed.mp4'
+                                    if versionOS=='M':
+                                        outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
                                     if iTimeLapseFlag:
                                         outp = cv2.VideoWriter(outFileName,fourcc, 10, (DisplayWidth, DisplayHeight))
                                     elif aTimeLapseFlag:
@@ -1402,6 +1424,8 @@ while runFlag:
                                     outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
                                 if versionOS=='W':
                                     outExcelFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Data.xlsx'
+                                if versionOS=='M':
+                                    outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
                                 writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
                                 workbook  = writer.book
                                 minArea=2
