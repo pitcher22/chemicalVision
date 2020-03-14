@@ -79,12 +79,17 @@ elif versionOS=='M':
 
 font = cv2.FONT_HERSHEY_SIMPLEX
     
-
-openedPickleEmail = open("FROM_EMAIL.pickle", "rb")
-FROM_EMAIL = pickle.load(openedPickleEmail)
-#opening the pickled email
-openedPicklePassword = open("FROM_PWD.pickle", "rb")
-FROM_PWD = pickle.load(openedPicklePassword)
+runMode = input("Are you downloading from an email? (Y/n): ")
+if (runMode == "y")|(runMode == "Y"):
+    FROM_EMAIL = input("Please enter your email address: ")
+    FROM_PWD = input("Please enter your password: ")
+else:
+    video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.MOV'),('all files', '.*')])
+#openedPickleEmail = open("FROM_EMAIL.pickle", "rb")
+#FROM_EMAIL = pickle.load(openedPickleEmail)
+##opening the pickled email
+#openedPicklePassword = open("FROM_PWD.pickle", "rb")
+#FROM_PWD = pickle.load(openedPicklePassword)
 #opening the pickled password
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
