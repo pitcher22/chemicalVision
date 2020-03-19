@@ -21,7 +21,6 @@ import email
 import email.utils
 from time import strftime
 import ssl
-import pickle
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
