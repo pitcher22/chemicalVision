@@ -614,8 +614,8 @@ for chan in range(256):
         
 
 
-useQRinImage = input("Use settings in the image's QR (i/I), saved in a file (f/F), or default (d/D)?")
-if (useQRinImage=="f") | (useQRinImage=="F"):
+useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
+if (useFile=="f") | (useFile=="F"):
     root = tk.Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
