@@ -1,12 +1,3 @@
-"""
-SETUP
-#all imports, OS specific settings, read/load settings file
-#goals: all values and flags set in a separate file (*.set), Python 2.7 and 3.X and OS independent
-#tactics/issues: store the gmail info not as plaintext (pickle?)
-lookup tables here as well 588to602
-get rid of prompt and read settings from a file 606to621
-#leave out QRcode stuff for now
-"""
 from __future__ import division
 from __future__ import print_function
 import sys
@@ -14,6 +5,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
+#requires: pip install opencv-python
 import cv2
 import smtplib
 import imaplib
@@ -27,6 +19,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 #import datetime
 #import matplotlib.pyplot as plt
+
+"""
+SETUP
+#all imports, OS specific settings, read/load settings file
+#goals: all values and flags set in a separate file (*.set) Need to work on lines 121 to 228
+Python 2.7 and 3.X 
+
+lookup tables here as well 588to602
+get rid of prompt and read settings from a file 606to621
+#leave out QRcode stuff for now, check
+"""
 
 if sys.version[0:1]=='3':
     versionPython=3
@@ -114,16 +117,19 @@ cellDepth=2
 cellWidth=5.5
 dropVolume=0.034
 
+#needs work here
 ActiveState="Process"
-try:
-    print(StoredSettingsFlag)
-    if StoredSettingsFlag:
-        dictSet=savedSet
-except:
-    print("Not Defined")
-    StoredSettingsFlag=False
-if StoredSettingsFlag==False:
-    settingString='''
+#try:
+#    print(StoredSettingsFlag)
+#    if StoredSettingsFlag:
+#        dictSet=savedSet
+#except:
+#    print("Not Defined")
+#    StoredSettingsFlag=False
+#if StoredSettingsFlag==False:
+    
+#change this to reading from a default settings file    
+settingString='''
 {
 'CAM bcs':[128, 128, 128],
 'CAM exp':[1, 50],
@@ -171,7 +177,8 @@ if StoredSettingsFlag==False:
 'ya2 sc':[0, 20, 150],
 }
 '''
-    upperLimitString='''
+#read the upper limits from a file as well (limits.set)
+upperLimitString='''
 {'CAM bcs':[255, 255, 255],
  'CAM exp':[  1, 255],
  'CAM foc':[ 1, 255],
@@ -221,8 +228,8 @@ if StoredSettingsFlag==False:
  'pl2 xy':[2000,2000],
  'pl2 wh':[2000,2000]}
 '''
-    dictSet=eval(settingString)
-    dictUL=eval(upperLimitString)
+dictSet=eval(settingString)
+dictUL=eval(upperLimitString)
     
 def hyst(x, th_lo, th_hi, initial = False):
     # http://stackoverflow.com/questions/23289976/how-to-find-zero-crossings-with-hysteresis
@@ -543,6 +550,7 @@ def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, yd
         yscale=float(h)/ydataRange
     else:
         yscale=1
+    #change the code below to loop through the data and us opencv functions to draw the data points
     xdata=((xdata-xdataRangemin)*xscale).astype(np.int)
     xdata[xdata>w]=w
     xdata[xdata<0]=0
@@ -615,15 +623,12 @@ for chan in range(256):
 
 
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
+#read a limits file as well here to set upperLimitString
 if (useFile=="f") | (useFile=="F"):
+    #include option of reading a default file on error
     root = tk.Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
-    
-    if versionOS=='L':
-        initialdir=r'/home/cantrell/Downloads/EmailedVideo'
-    elif versionOS=='W':
-        initialdir=r'C:\Users\cantrell\Dropbox (UofP)\ChemicalVision\chemicalVision'
     settings_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.set'),('all files', '.*')])
     settingsFile = open(settings_file_path,'r')
     settingString=settingsFile.read()
