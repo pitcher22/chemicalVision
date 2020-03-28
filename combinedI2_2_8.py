@@ -525,7 +525,7 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
     if labelFlag:
         cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" p="+'{0:.2f}'.format(domCount)+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
     return (avgVal[0][channel][0],avgVal[1][channel][0],domValue/float(NumBins-1)*(DataMax-DataMin))
-
+        
 def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,alpha=1,labelFlag=True):      
     if xdataRangemin==None: 
          xdataRangemin=np.min(xdata)       
@@ -545,29 +545,22 @@ def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, yd
         yscale=float(h)/ydataRange
     else:
         yscale=1
-    #change the code below to loop through the data and us opencv functions to draw the data points
+    #changed the code below to loop through the data and us opencv functions to draw the data points
     xdata=((xdata-xdataRangemin)*xscale).astype(np.int)
     xdata[xdata>w]=w
     xdata[xdata<0]=0
     ydata=((ydataRangemax-ydata)*yscale).astype(np.int)
     ydata[ydata>h]=h
     ydata[ydata<0]=0
-    if alpha==1:
-        img[y+ydata,x+xdata]=color
-    else:
-        xCords=xdata+x
-        yCords=ydata+y
-        #consider making this bigger
-        colorApha=(int(color[0]*alpha),int(color[1]*alpha),int(color[2]*alpha))
-        for ptx,pty in zip(xCords,yCords):
-            img[yCords,xCords]=img[yCords,xCords]+colorApha
-#    img[y+ydata,x+xdata]=img[y+ydata,x+xdata]+np.array([100,100,100])
     cv2.rectangle(img,(x,y),(x+w+1,y+h+1),color,1)
-    if labelFlag:
+    for ptx, pty in zip(xdata, ydata):
+        if xdata.any() > 0 and ydata.any() > 0:
+            cv2.circle(img, (x + ptx,y + pty), 5, (0,255,0), -1)
         cv2.putText(img,str(round(xdataRangemax,0)),(x+w-15,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(xdataRangemin,0)),(x-5,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(ydataRangemax,0)),(x-40,y+10), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(ydataRangemin,0)),(x-40,y+h-5), font, 0.4,color,1,cv2.LINE_AA)
+        
         
 def ShiftHOriginToValue(hue,maxHue,newOrigin,direction='cw'):
     shifthsv=np.copy(hue).astype('float')
