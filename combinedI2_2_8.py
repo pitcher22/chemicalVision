@@ -514,7 +514,7 @@ if (useFile=="f") | (useFile=="F"):
     root = tk.Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
-    settings_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.set'),('all files', '.*')])
+    settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
     settingsFile = open(settings_file_path,'r')
     settingString=settingsFile.read()
     settingsFile.close()
@@ -522,6 +522,9 @@ if (useFile=="f") | (useFile=="F"):
     print(dictSet)
     ActiveState="Process"
 else:
+    settingsFile = open(settings_file_path,'r')
+    settingString=settingsFile.read()
+    settingsFile.close()
     dictSet=eval(settingString)
     
 dictUL=eval(upperLimitString)
