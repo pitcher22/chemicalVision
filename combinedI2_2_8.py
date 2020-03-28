@@ -406,7 +406,7 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
     domValue=np.sum(histdata[sortArg[-5:][:,0]][:,0]*sortArg[-5:][:,0])/np.sum(histdata[sortArg[-5:][:,0]][:,0])
     domCount=np.sum(histdata[sortArg[-5:][:,0]][:,0])/np.sum(histdata)
     #numpixels=sum(np.array(histdata[domValue-integrationWindow:domValue+integrationWindow+1]))
-    cv2.normalize(histdata, histdata, 0, h, cv2.NORM_MINMAX);
+    cv2.normalize(histdata, histdata, 0, h, cv2.NORM_MINMAX)
     if w>NumBins:
         binWidth = w/NumBins
     else:
