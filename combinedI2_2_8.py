@@ -60,6 +60,7 @@ if versionOS=='W':
     dnArrow=2621440
     filePathEmail=os.getcwd()+'\\EmailedVideo'
     filePathSettings=os.getcwd()+'\\Settings'
+    osSep='\\'
     fourcc = cv2.VideoWriter_fourcc(*'MP42')
     #fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
@@ -71,6 +72,7 @@ elif versionOS=='L':
     dnArrow=84
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 elif versionOS=='M':
     ltArrow=81
@@ -79,6 +81,7 @@ elif versionOS=='M':
     dnArrow=84
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -522,12 +525,14 @@ if (useFile=="f") | (useFile=="F"):
     print(dictSet)
     ActiveState="Process"
 else:
-    settingsFile = open(settings_file_path,'r')
+    settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
     settingString=settingsFile.read()
     settingsFile.close()
     dictSet=eval(settingString)
-    
-dictUL=eval(upperLimitString)
+settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
+settingString=settingsFile.read()
+settingsFile.close()
+dictUL=eval(settingString)
     
 mail = imaplib.IMAP4_SSL(SMTP_SERVER)
 mail.login(FROM_EMAIL,FROM_PWD)
