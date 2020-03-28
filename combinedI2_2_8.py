@@ -60,6 +60,7 @@ if versionOS=='W':
     dnArrow=2621440
     filePathEmail=os.getcwd()+'\\EmailedVideo'
     filePathSettings=os.getcwd()+'\\Settings'
+    osSep='\\'
     fourcc = cv2.VideoWriter_fourcc(*'MP42')
     #fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
@@ -71,6 +72,7 @@ elif versionOS=='L':
     dnArrow=84
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 elif versionOS=='M':
     ltArrow=81
@@ -79,6 +81,7 @@ elif versionOS=='M':
     dnArrow=84
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
 font = cv2.FONT_HERSHEY_SIMPLEX
