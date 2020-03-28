@@ -525,12 +525,14 @@ if (useFile=="f") | (useFile=="F"):
     print(dictSet)
     ActiveState="Process"
 else:
-    settingsFile = open(settings_file_path,'r')
+    settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
     settingString=settingsFile.read()
     settingsFile.close()
     dictSet=eval(settingString)
-    
-dictUL=eval(upperLimitString)
+settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
+settingString=settingsFile.read()
+settingsFile.close()
+dictUL=eval(settingString)
     
 mail = imaplib.IMAP4_SSL(SMTP_SERVER)
 mail.login(FROM_EMAIL,FROM_PWD)
