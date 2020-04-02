@@ -1,12 +1,3 @@
-"""
-SETUP
-#all imports, OS specific settings, read/load settings file
-#goals: all values and flags set in a separate file (*.set), Python 2.7 and 3.X and OS independent
-#tactics/issues: store the gmail info not as plaintext (pickle?)
-lookup tables here as well 588to602
-get rid of prompt and read settings from a file 606to621
-#leave out QRcode stuff for now
-"""
 from __future__ import division
 from __future__ import print_function
 import sys
@@ -14,6 +5,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
+#requires: pip install opencv-python
 import cv2
 import smtplib
 import imaplib
@@ -21,13 +13,23 @@ import email
 import email.utils
 from time import strftime
 import ssl
-import pickle
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 #import datetime
 #import matplotlib.pyplot as plt
+
+"""
+SETUP
+#all imports, OS specific settings, read/load settings file
+#goals: all values and flags set in a separate file (*.set) Need to work on lines 121 to 228
+Python 2.7 and 3.X 
+
+lookup tables here as well 588to602
+get rid of prompt and read settings from a file 606to621
+#leave out QRcode stuff for now, check
+"""
 
 if sys.version[0:1]=='3':
     versionPython=3
@@ -56,7 +58,9 @@ if versionOS=='W':
     upArrow=2490368
     rtArrow=2555904
     dnArrow=2621440
-    filePath=os.getcwd()+'\\EmailedVideo'
+    filePathEmail=os.getcwd()+'\\EmailedVideo'
+    filePathSettings=os.getcwd()+'\\Settings'
+    osSep='\\'
     fourcc = cv2.VideoWriter_fourcc(*'MP42')
     #fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
@@ -66,26 +70,29 @@ elif versionOS=='L':
     upArrow=82
     rtArrow=83
     dnArrow=84
-    filePath=os.getcwd()+'/EmailedVideo'
+    filePathEmail=os.getcwd()+'/EmailedVideo'
+    filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    
 elif versionOS=='M':
     ltArrow=81
     upArrow=82
     rtArrow=83
     dnArrow=84
-    filePath=os.getcwd()+'/EmailedVideo'
+    filePathEmail=os.getcwd()+'/EmailedVideo'
+    filePathSettings=os.getcwd()+'/Settings'
+    osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
 font = cv2.FONT_HERSHEY_SIMPLEX
     
+runMode = input("Are you downloading from an email? (Y/n): ")
+if (runMode == "y")|(runMode == "Y"):
+    FROM_EMAIL = input("Please enter your email address: ")
+    FROM_PWD = input("Please enter your password: ")
+else:
+    video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.MOV'),('all files', '.*')])
 
-openedPickleEmail = open("FROM_EMAIL.pickle", "rb")
-FROM_EMAIL = pickle.load(openedPickleEmail)
-#opening the pickled email
-openedPicklePassword = open("FROM_PWD.pickle", "rb")
-FROM_PWD = pickle.load(openedPicklePassword)
-#opening the pickled password
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
 
@@ -111,115 +118,7 @@ cellWidth=5.5
 dropVolume=0.034
 
 ActiveState="Process"
-try:
-    print(StoredSettingsFlag)
-    if StoredSettingsFlag:
-        dictSet=savedSet
-except:
-    print("Not Defined")
-    StoredSettingsFlag=False
-if StoredSettingsFlag==False:
-    settingString='''
-{
-'CAM bcs':[128, 128, 128],
-'CAM exp':[1, 50],
-'CAM foc':[1, 60],
-'RO1 ll':[50, 80, 0],
-'RO1 ul':[67, 255, 255],
-'RO1 wh':[920, 420],
-'RO1 xy':[1280, 230],
-'RO2 ll':[0, 0, 0],
-'RO2 ul':[227, 255, 255],
-'RO2 wh':[850, 500],
-'RO2 xy':[0, 325],
-'RO3 ll':[0, 0, 0],
-'RO3 ul':[255, 255, 255],
-'RO3 wh':[280, 40],
-'RO3 xy':[1310, 498],
-'WBR ll':[0, 0, 0],
-'WBR sc':[160],
-'WBR ul':[255, 40, 255],
-'WB1 wh':[470, 100],
-'WB1 xy':[1310, 260],
-'box ll':[70, 20, 40],
-'box ul':[130, 255, 255],
-'c12 ll':[20, 20, 0],
-'c12 ul':[40, 255, 255],
-'c34 ll':[120, 20, 0],
-'c34 ul':[160, 255, 255],
-'cl1 xy':[1420, 765],
-'cl2 xy':[2295, 765],
-'cl3 xy':[1420, 135],
-'cl4 xy':[2295, 135],
-'dsp wh':[1700, 900],
-'hue lo':[180.0, 150.0],
-'pl1 wh':[220, 220],
-'pl1 xy':[1160, 10],
-'pl2 wh':[220, 220],
-'pl2 xy':[1160, 310],
-'xa1 ch':[31, 0, 1],
-'xa1 sc':[1, 0, 0],
-'xa2 ch':[15, 0, 1],
-'xa2 sc':[1, 0, 0],
-'ya1 ch':[13, 0, 1],
-'ya1 sc':[1, 20, 150],
-'ya2 ch':[8, 0, 1],
-'ya2 sc':[0, 20, 150],
-}
-'''
-    upperLimitString='''
-{'CAM bcs':[255, 255, 255],
- 'CAM exp':[  1, 255],
- 'CAM foc':[ 1, 255],
- 'RO1 ll':[ 255, 255,  255],
- 'RO1 ul':[255, 255, 255],
- 'RO1 wh':[2600, 1200],
- 'RO1 xy':[2600, 1200],
- 'RO2 ll':[ 255, 255,  255],
- 'RO2 ul':[255, 255, 255],
- 'RO2 wh':[2600, 1200],
- 'RO2 xy':[2600, 1200],
- 'RO3 ll':[ 255, 255,  255],
- 'RO3 ul':[255, 255, 255],
- 'RO3 wh':[2600, 1200],
- 'RO3 xy':[2600, 1200],
- 'WBR sc':[255],
- 'WBR ll':[255, 255, 255],
- 'WBR ul':[255, 255, 255],
- 'WB1 wh':[2600, 1200],
- 'WB1 xy':[2600, 1200],
- 'WB2 wh':[2600, 1200],
- 'WB2 xy':[2600, 1200],
- 'WB3 wh':[2600, 1200],
- 'WB3 xy':[2600, 1200],
- 'box ll':[255, 255, 255],
- 'box ul':[255, 255, 255],
- 'cl1 xy':[2600,2600],
- 'cl2 xy':[2600,2600],
- 'cl3 xy':[2600,2600],
- 'cl4 xy':[2600,2600],
- 'c12 ll':[255, 255, 255],
- 'c12 ul':[255, 255, 255],
- 'c34 ll':[255, 255, 255],
- 'c34 ul':[255, 255, 255],
- 'hue lo':[180,180],
- 'dsp wh':[2000,2000],
- 'xa1 ch':[32,2,3],
- 'ya1 ch':[32,2,3],
- 'xa1 sc':[1,5000000,5000000],
- 'ya1 sc':[1,5000000,5000000], 
- 'pl1 xy':[2000,2000],
- 'pl1 wh':[2000,2000],
- 'xa2 ch':[32,2,3],
- 'ya2 ch':[32,2,3],
- 'xa2 sc':[1,5000000,5000000],
- 'ya2 sc':[1,5000000,5000000], 
- 'pl2 xy':[2000,2000],
- 'pl2 wh':[2000,2000]}
-'''
-    dictSet=eval(settingString)
-    dictUL=eval(upperLimitString)
-    
+
 def hyst(x, th_lo, th_hi, initial = False):
     # http://stackoverflow.com/questions/23289976/how-to-find-zero-crossings-with-hysteresis
     hi = x >= th_hi
@@ -519,7 +418,7 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
     if labelFlag:
         cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" p="+'{0:.2f}'.format(domCount)+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
     return (avgVal[0][channel][0],avgVal[1][channel][0],domValue/float(NumBins-1)*(DataMax-DataMin))
-
+        
 def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,alpha=1,labelFlag=True):      
     if xdataRangemin==None: 
          xdataRangemin=np.min(xdata)       
@@ -539,28 +438,22 @@ def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, yd
         yscale=float(h)/ydataRange
     else:
         yscale=1
+    #changed the code below to loop through the data and us opencv functions to draw the data points
     xdata=((xdata-xdataRangemin)*xscale).astype(np.int)
     xdata[xdata>w]=w
     xdata[xdata<0]=0
     ydata=((ydataRangemax-ydata)*yscale).astype(np.int)
     ydata[ydata>h]=h
     ydata[ydata<0]=0
-    if alpha==1:
-        img[y+ydata,x+xdata]=color
-    else:
-        xCords=xdata+x
-        yCords=ydata+y
-        #consider making this bigger
-        colorApha=(int(color[0]*alpha),int(color[1]*alpha),int(color[2]*alpha))
-        for ptx,pty in zip(xCords,yCords):
-            img[yCords,xCords]=img[yCords,xCords]+colorApha
-#    img[y+ydata,x+xdata]=img[y+ydata,x+xdata]+np.array([100,100,100])
     cv2.rectangle(img,(x,y),(x+w+1,y+h+1),color,1)
-    if labelFlag:
+    for ptx, pty in zip(xdata, ydata):
+        if xdata.any() > 0 and ydata.any() > 0:
+            cv2.circle(img, (x + ptx,y + pty), 5, (0,255,0), -1)
         cv2.putText(img,str(round(xdataRangemax,0)),(x+w-15,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(xdataRangemin,0)),(x-5,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(ydataRangemax,0)),(x-40,y+10), font, 0.4,color,1,cv2.LINE_AA)
         cv2.putText(img,str(round(ydataRangemin,0)),(x-40,y+h-5), font, 0.4,color,1,cv2.LINE_AA)
+        
         
 def ShiftHOriginToValue(hue,maxHue,newOrigin,direction='cw'):
     shifthsv=np.copy(hue).astype('float')
@@ -610,23 +503,29 @@ for chan in range(256):
         
 
 
-useQRinImage = input("Use settings in the image's QR (i/I), saved in a file (f/F), or default (d/D)?")
-if (useQRinImage=="f") | (useQRinImage=="F"):
+useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
+#read a limits file as well here to set upperLimitString
+if (useFile=="f") | (useFile=="F"):
+    #include option of reading a default file on error
     root = tk.Tk()
     root.withdraw()
     root.wm_attributes('-topmost', 1)
-    
-    if versionOS=='L':
-        initialdir=r'/home/cantrell/Downloads/EmailedVideo'
-    elif versionOS=='W':
-        initialdir=r'C:\Users\cantrell\Dropbox (UofP)\ChemicalVision\chemicalVision'
-    settings_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.set'),('all files', '.*')])
+    settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
     settingsFile = open(settings_file_path,'r')
     settingString=settingsFile.read()
     settingsFile.close()
     dictSet=eval(settingString)
     print(dictSet)
     ActiveState="Process"
+else:
+    settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
+    settingString=settingsFile.read()
+    settingsFile.close()
+    dictSet=eval(settingString)
+settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
+settingString=settingsFile.read()
+settingsFile.close()
+dictUL=eval(settingString)
     
 mail = imaplib.IMAP4_SSL(SMTP_SERVER)
 mail.login(FROM_EMAIL,FROM_PWD)
@@ -722,7 +621,7 @@ while runFlag:
                                         dateName = dateName.replace(c, '_') 
                                     for c in bad_chars : 
                                         returnAddress = returnAddress.replace(c, '') 
-                                    fileName=filePath+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    fileName=filePathEmail+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
                                     
                                 if versionOS=='W':
                                     bad_chars=[":","<",">"]
@@ -732,7 +631,7 @@ while runFlag:
                                         dateName = dateName.replace(c, '_') 
                                     for c in bad_chars : 
                                         returnAddress = returnAddress.replace(c, '')
-                                    fileName=filePath+'\\'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    fileName=filePathEmail+'\\'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
                                     
                                 if versionOS=='M':
                                     bad_chars=[":","<",">"]
@@ -742,7 +641,7 @@ while runFlag:
                                         dateName = dateName.replace(c, '_') 
                                     for c in bad_chars : 
                                         returnAddress = returnAddress.replace(c, '') 
-                                    fileName=filePath+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
+                                    fileName=filePathEmail+'/'+ dateName + '#'+ returnAddress +'#'+ email_subject+'.MOV'
                                     
                                 print ('Downloading and saving '+fileName)
                                 fp = open(fileName, 'wb')
@@ -799,11 +698,11 @@ while runFlag:
                                 videoStartTime=time.time()
                                 if RecordFlag:
                                     if versionOS=='L':
-                                        outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
+                                        outFileName=filePathEmail+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
                                     if versionOS=='W':
-                                        outFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Processed.mp4'
+                                        outFileName=filePathEmail+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Processed.mp4'
                                     if versionOS=='M':
-                                        outFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
+                                        outFileName=filePathEmail+'/Processed/'+ dateName + '#' + email_subject +'#'+'Processed.mp4'
                                     if iTimeLapseFlag:
                                         outp = cv2.VideoWriter(outFileName,fourcc, 10, (DisplayWidth, DisplayHeight))
                                     elif aTimeLapseFlag:
@@ -1438,11 +1337,11 @@ while runFlag:
                                 dfMost=pd.DataFrame(data=ParameterStats[0:12,2,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
 
                                 if versionOS=='L':
-                                    outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
+                                    outExcelFileName=filePathEmail+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
                                 if versionOS=='W':
-                                    outExcelFileName=filePath+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Data.xlsx'
+                                    outExcelFileName=filePathEmail+'\\Processed\\'+ dateName + '#'+ email_subject +'#'+'Data.xlsx'
                                 if versionOS=='M':
-                                    outExcelFileName=filePath+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
+                                    outExcelFileName=filePathEmail+'/Processed/'+ dateName + '#' + email_subject +'#'+'Data.xlsx'
                                 writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
                                 workbook  = writer.book
                                 minArea=2
@@ -1642,7 +1541,7 @@ saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
     root.withdraw()
-    settings_file_path = asksaveasfilename(initialdir='/home/sensor/',filetypes=[('settings files', '.set'),('all files', '.*')])
+    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
     settingsFile = open(settings_file_path,'w')
     sortedDictSet = sorted(dictSet)
     outString = '{' + "\n"
