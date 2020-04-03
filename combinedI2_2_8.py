@@ -106,16 +106,14 @@ if dayLightSavings:
 else:
     greenwichTimeAdjustment = 8
     
-maskDiagnostic=False    
+
 referenceFlag=True
 settingsFlag=False    
 RecordFlag=True
 overlayFlag=True
 displayHelp=True
 cmPerPixel=2.54/300
-cellDepth=2
-cellWidth=5.5
-dropVolume=0.034
+
 
 ActiveState="Process"
 
@@ -1077,32 +1075,32 @@ while runFlag:
                                             ParameterStats[18,0,frameNumber,1]=MaxRO1AreaVolume*cmPerPixel*cmPerPixel
                                 
                                             if frameNumber>=2:
-                                                if dictSet['xa1 sc'][0]==0:
-                                                    xMin=dictSet['xa1 sc'][1]
-                                                    xMax=dictSet['xa1 sc'][2]
+                                                if dictSet['a1x sc'][0]==0:
+                                                    xMin=dictSet['a1x sc'][1]
+                                                    xMax=dictSet['a1x sc'][2]
                                                 else:
                                                     xMin=None
                                                     xMax=None          
-                                                if dictSet['ya1 sc'][0]==0:
-                                                    yMin=dictSet['ya1 sc'][1]
-                                                    yMax=dictSet['ya1 sc'][2]
+                                                if dictSet['a1y sc'][0]==0:
+                                                    yMin=dictSet['a1y sc'][1]
+                                                    yMax=dictSet['a1y sc'][2]
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['xa1 ch'][0],dictSet['xa1 ch'][1],0:frameNumber,dictSet['xa1 ch'][2]],ParameterStats[dictSet['ya1 ch'][0],dictSet['ya1 ch'][1],0:frameNumber,dictSet['ya1 ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
-                                                if dictSet['xa2 sc'][0]==0:
-                                                    xMin=dictSet['xa2 sc'][1]
-                                                    xMax=dictSet['xa2 sc'][2]
+                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a1x ch'][0],dictSet['a1x ch'][1],0:frameNumber,dictSet['a1x ch'][2]],ParameterStats[dictSet['a1y ch'][0],dictSet['a1y ch'][1],0:frameNumber,dictSet['a1y ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                if dictSet['a2x sc'][0]==0:
+                                                    xMin=dictSet['a2x sc'][1]
+                                                    xMax=dictSet['a2x sc'][2]
                                                 else:
                                                     xMin=None
                                                     xMax=None          
-                                                if dictSet['ya2 sc'][0]==0:
-                                                    yMin=dictSet['ya2 sc'][1]
-                                                    yMax=dictSet['ya2 sc'][2]
+                                                if dictSet['a2y sc'][0]==0:
+                                                    yMin=dictSet['a2y sc'][1]
+                                                    yMax=dictSet['a2y sc'][2]
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['xa2 ch'][0],dictSet['xa2 ch'][1],0:frameNumber,dictSet['xa2 ch'][2]],ParameterStats[dictSet['ya2 ch'][0],dictSet['ya2 ch'][1],0:frameNumber,dictSet['ya2 ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                             if ActiveState=="Process":
                                                 frameNumber=frameNumber+1
                                 
@@ -1234,7 +1232,7 @@ while runFlag:
                                         cv2.rectangle(displayFrame, (int(DisplayWidth*0.525/2),int(DisplayHeight*0.2/2)), (int(DisplayWidth*0.575/2),int(DisplayHeight*0.8/2)), (255,255,255),-1)
                                 
                                     cv2.imshow('Display', displayFrame)
-                                    if maskDiagnostic:
+                                    if dictSet['flg di'][0]==1:
                                         cv2.imshow('Diagnostic', img)
                                         cv2.imshow('WB', rgbWBR)
                                         cv2.imshow('RO2', rgbRO2)
@@ -1247,7 +1245,7 @@ while runFlag:
                             #                dim2=frameImageScale.shape[0]
                             #                dim1=frameImageScale.shape[1]
                             #                #OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,labelFlag=True)
-                            #                OpenCVDisplayedScatter(frameImageScale, ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1],ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1],int(dim1/10),int(dim2/10),int(dim1/4),int(dim2/3),(255,255,255),ydataRangemin=10, ydataRangemax=45,xdataRangemin=xMin, xdataRangemax=xMax)
+                            #                OpenCVDisplayedScatter(frameImageScale, ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1],ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1],int(dim1/10),int(dim2/10),int(dim1/4),int(dim2/3),(255,255,255),ydataRangemin=10, ydataRangemax=45,xdataRangemin=xMin, xdataRangemax=xMax)
                             #                cv2.imshow('frameImageScale', frameImageScale)
                             #                if (currentTime>100) & (currentTime<400):
                             #                    outp.write(frameImageScale)
@@ -1261,7 +1259,10 @@ while runFlag:
                                         runFlag=False
                                         break
                                     if keypress == ord('i'):
-                                        maskDiagnostic=not(maskDiagnostic)
+                                        if dictSet['flg di'][0]==1:
+                                            dictSet['flg di'][0]=0
+                                        else:
+                                            dictSet['flg di'][0]=1
                                     if keypress == ord('t'):
                                         settingsFlag=not settingsFlag
                                     if keypress == ord('r'):
@@ -1340,18 +1341,18 @@ while runFlag:
                                 dfMinArea=ParameterStats[15,0,0:frameNumber,1]>minArea
                                 dfHeightRange=(ParameterStats[16,0,0:frameNumber,1]>np.mean(ParameterStats[16,0,0:frameNumber,1][dfMinArea])*0.95) & (ParameterStats[16,0,0:frameNumber,1]<np.mean(ParameterStats[16,0,0:frameNumber,1][dfMinArea])*1.05)
                                 #dfBool=dfMinArea & dfHeightRange
-                                dfBool=(dfMinArea) & (ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1]<=maxSignal) & (ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1]>=minSignal)
+                                dfBool=(dfMinArea) & (ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1]<=maxSignal) & (ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1]>=minSignal)
 
                                 worksheetFit = workbook.add_worksheet("Fit")
                                 worksheetFit.write('A1', 'Time')
-                                worksheetFit.write('B1', labels[dictSet['ya1 ch'][0]])
+                                worksheetFit.write('B1', labels[dictSet['a1y ch'][0]])
                                 worksheetFit.write('C1', 'Time (linear range)')
-                                worksheetFit.write('D1', labels[dictSet['ya1 ch'][0]]+' (linear range)')
-                                worksheetFit.write_column('A2',ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1])
-                                worksheetFit.write_column('B2',ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1])
-                                worksheetFit.write_column('C2',ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool])
-                                worksheetFit.write_column('D2',ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1][dfBool])
-                                numEntries=ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool].size
+                                worksheetFit.write('D1', labels[dictSet['a1y ch'][0]]+' (linear range)')
+                                worksheetFit.write_column('A2',ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1])
+                                worksheetFit.write_column('B2',ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1])
+                                worksheetFit.write_column('C2',ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1][dfBool])
+                                worksheetFit.write_column('D2',ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1][dfBool])
+                                numEntries=ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1][dfBool].size
                                 numIndex=str(numEntries+1)
                                 worksheetFit.write_array_formula('I3:J5', '{=LINEST(D2:D'+numIndex+',C2:C'+numIndex+',TRUE,TRUE)}')
                                 worksheetFit.write('I2', 'Slope')
@@ -1360,9 +1361,9 @@ while runFlag:
                                 worksheetFit.write('H4', 'errors')
                                 worksheetFit.write('H5', 'r2, sy')
                                 chart1 = workbook.add_chart({'type': 'scatter'})
-                                numAllEntries=ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1].size
+                                numAllEntries=ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1].size
                                 chart1.add_series({
-                                    'name': labels[dictSet['ya1 ch'][0]]+' linear',
+                                    'name': labels[dictSet['a1y ch'][0]]+' linear',
                                     'categories': ["Fit", 1, 2, 1+numEntries-1, 2],
                                     'values': ["Fit", 1, 3, 1+numEntries-1, 3],
                                     'trendline': {
@@ -1372,8 +1373,8 @@ while runFlag:
                                         'color': 'black',
                                         'width': 2,
                                         },
-                                        'forward': ParameterStats[dictSet['xa1 ch'][0],0,frameNumber-1,1],
-                                        'backward': ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool][0],
+                                        'forward': ParameterStats[dictSet['a1x ch'][0],0,frameNumber-1,1],
+                                        'backward': ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1][dfBool][0],
                                     },
                                     'marker': {
                                         'type': 'circle',
@@ -1383,7 +1384,7 @@ while runFlag:
                                     },
                                 })
                                 chart1.add_series({
-                                    'name': labels[dictSet['ya1 ch'][0]]+' all',
+                                    'name': labels[dictSet['a1y ch'][0]]+' all',
                                     'categories': ["Fit", 1, 0, 1+numAllEntries-1, 0],
                                     'values': ["Fit", 1, 1, 1+numAllEntries-1, 1],
                                     'marker': {
@@ -1394,17 +1395,17 @@ while runFlag:
                                     },
                                 })
                             
-                                #chart1.set_title ({'name': labels[dictSet['ya1 ch'][0]]+' Change'})
-                                if (ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1].size!=0) and (ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1].size!=0):
+                                #chart1.set_title ({'name': labels[dictSet['a1y ch'][0]]+' Change'})
+                                if (ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1].size!=0) and (ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1].size!=0):
                                     chart1.set_x_axis({
                                             'name': 'Time (seconds)',
-                                            'min': np.min(np.floor(ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1])),
-                                            'max': np.max(np.ceil(ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1]))
+                                            'min': np.min(np.floor(ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1])),
+                                            'max': np.max(np.ceil(ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1]))
                                             })
                                     chart1.set_y_axis({
                                             'name': 'Signal',
-                                            'min': np.min(np.floor(ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1])),
-                                            'max': np.max(np.ceil(ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1])),
+                                            'min': np.min(np.floor(ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1])),
+                                            'max': np.max(np.ceil(ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1])),
                                             'major_gridlines': {
                                                     'visible': False,
                                                     },
@@ -1440,8 +1441,8 @@ while runFlag:
                                 sendemail = False
                                 if sendemail == True:
                                     subject = "Processed I2 Data "+emailSubject
-                                    X=ParameterStats[dictSet['xa1 ch'][0],0,0:frameNumber,1][dfBool]
-                                    Y=ParameterStats[dictSet['ya1 ch'][0],0,0:frameNumber,1][dfBool]
+                                    X=ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1][dfBool]
+                                    Y=ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1][dfBool]
                                     fit=PolyReg(X,Y,1)
                                     rate=-fit['coefs'][0]
                                     subjectPos=email_subject.lower().find('t')+1
