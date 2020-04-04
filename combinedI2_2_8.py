@@ -17,8 +17,11 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import data_analysis_helpers as da
+#from image_processing_source_file import *
+import image_processing_source_file as ip
 #import datetime
-#import matplotlib.pyplot as plt
+
 
 """
 SETUP
@@ -47,7 +50,7 @@ if versionPython==2:
     import Tkinter as tk
     from tkFileDialog import askopenfilename
     from tkFileDialog import asksaveasfilename
-    input=raw_input
+    #input=raw_input
 else:
     import tkinter as tk
     from tkinter.filedialog import askopenfilename
@@ -114,374 +117,8 @@ overlayFlag=True
 displayHelp=True
 cmPerPixel=2.54/300
 
-
 ActiveState="Process"
 
-def hyst(x, th_lo, th_hi, initial = False):
-    # http://stackoverflow.com/questions/23289976/how-to-find-zero-crossings-with-hysteresis
-    hi = x >= th_hi
-    lo_or_hi = (x <= th_lo) | hi
-    ind = np.nonzero(lo_or_hi)[0]
-    if not ind.size: # prevent index error if ind is empty
-        return np.zeros_like(x, dtype=bool) | initial
-    cnt = np.cumsum(lo_or_hi) # from 0 to len(x)
-    return np.where(cnt, hi[ind[cnt-1]], initial)
- 
-def crossBoolean(x, y, crossPoint=0, direction='cross'):
-    """
-    Given a Series returns all the index values where the data values equal 
-    the 'cross' value. 
- 
-    Direction can be 'rising' (for rising edge), 'falling' (for only falling 
-    edge), or 'cross' for both edges
-    """
-    # Find if values are above or bellow yvalue crossing:
-    above=y > crossPoint
-    below=np.logical_not(above)
-    left_shifted_above = above[1:]
-    left_shifted_below = below[1:]
-    x_crossings = []
-    # Find indexes on left side of crossing point
-    if direction == 'rising':
-        idxs = (left_shifted_above & below[0:-1]).nonzero()[0]
-    elif direction == 'falling':
-        idxs = (left_shifted_below & above[0:-1]).nonzero()[0]
-    else:
-        rising = left_shifted_above & below[0:-1]
-        falling = left_shifted_below & above[0:-1]
-        idxs = (rising | falling).nonzero()[0]
- 
-    # Calculate x crossings with interpolation using formula for a line:
-    x1 = x[idxs]
-    x2 = x[idxs+1]
-    y1 = y[idxs]
-    y2 = y[idxs+1]
-    x_crossings = (crossPoint-y1)*(x2-x1)/(y2^y1) + x1
- 
-    return x_crossings,idxs
-
-def PolyReg(X,Y,order):
-    """
-    Perform a least squares polynomial fit
-    
-    Parameters
-    ----------
-        X: a numpy array with shape M
-            the independent variable 
-        Y: a numpy array with shape M
-            the dependent variable
-        order: integer
-            the degree of the fitting polynomial
-    
-    Returns
-    -------
-    a dict with the following keys:
-        'coefs': a numpy array with length order+1 
-            the coefficients of the fitting polynomial, higest order term first
-        'errors': a numpy array with length order+1
-            the standard errors of the calculated coefficients, 
-            only returned if (M-order)>2
-        'sy': float
-            the standard error of the fit
-        'n': integer
-            number of data points (M)
-        'poly':  class in numpy.lib.polynomial module
-            a polynomial with coefficients (coefs) and degreee (order),
-            see example below
-        'res': a numpy array with length M
-            the residuals of the fit
-    
-    Examples
-    --------
-    >>> x = np.array([0.0, 1.0, 2.0, 3.0,  4.0,  5.0])
-    >>> y = np.array([0.0, 0.8, 0.9, 0.1, -0.8, -1.0])
-    >>> fit = PolyReg(x, y, 2)
-    >>> fit
-    {'coefs': array([-0.16071429,  0.50071429,  0.22142857]),
-     'errors': array([0.06882765, 0.35852091, 0.38115025]),
-     'n': 6,
-     'poly': poly1d([-0.16071429,  0.50071429,  0.22142857]),
-     'res': array([-0.22142857,  0.23857143,  0.32      , -0.17714286, -0.45285714,
-         0.29285714]),
-     'sy': 0.4205438655564278}
-    
-    It is convenient to use the "poly" key for dealing with fit polynomials:
-    
-    >>> fit['poly'](0.5)
-    0.43160714285714374
-    >>> fit['poly'](10)
-    -10.842857142857126
-    >>> fit['poly'](np.linspace(0,10,11))
-    array([  0.22142857,   0.56142857,   0.58      ,   0.27714286,
-        -0.34714286,  -1.29285714,  -2.56      ,  -4.14857143,
-        -6.05857143,  -8.29      , -10.84285714])
-    """
-    n=len(X)
-    if X.shape!=Y.shape:
-        raise Exception('The shape of X and Y should be the same')
-    df=n-(order+1)
-    if df<0:
-        raise Exception('The number of data points is too small for that many coefficients')
-    #if df = 0, 1, or 2 we call numpy's polyfit function without calculating the covariance matrix
-    elif df<(3):
-        coefs=np.polyfit(X,Y,order)
-        p=np.poly1d(coefs)
-        yFit=p(X)
-        res=Y-yFit
-        sy=np.sqrt( np.sum(res**2) / df )
-        if order==1:
-            #if the fit is linear we can explicitly calculate the standard errors of the slope and intercept
-            #http://www.chem.utoronto.ca/coursenotes/analsci/stats/ErrRegr.html
-            stdErrors=np.zeros((2))
-            xVar=np.sum((X-np.mean(X))**2)
-            sm=sy/np.sqrt(xVar)
-            sb=np.sqrt(np.sum(X**2)/(n*xVar))*sy
-            stdErrors[0]=sm
-            stdErrors[1]=sb            
-        else:
-            stdErrors=np.full((order+1),np.inf)
-    else:
-        #The diagonal of the covariance matrix is the square of the standard error for each coefficent
-        #NOTE 1: The polyfit function conservatively scales the covariance matrix. Dividing by (n-# coefs-2) rather than (n-# coefs)
-        #NOTE 2: Because of this scaling factor, you can get division by zero in the covariance matrix when (# coefs-n)<2
-        coefs,cov=np.polyfit(X,Y,order,cov=True)
-        p=np.poly1d(coefs)
-        yFit=p(X)
-        res=Y-yFit
-        sy=np.sqrt( np.sum(res**2) / df )
-        stdErrors=np.sqrt(np.diagonal(cov)*(df-2)/df)
-    return {'coefs':coefs,'errors':stdErrors,'sy':sy,'n':n,'poly':p,'res':res}
-
-def FormatSciUsingError(x,e,withError=False,extraDigit=0):
-    """
-    Format the value, x, as a string using scientific notation and rounding appropriately based on the absolute error, e
-    
-    Parameters
-    ----------
-        x: number
-            the value to be formatted 
-        e: number
-            the absolute error of the value
-        withError: bool, optional
-            When False (the default) returns a string with only the value. When True returns a string containing the value and the error
-        extraDigit: int, optional
-            number of extra digits to return in both value and error
-    
-    Returns
-    -------
-    a string
-    
-    Examples
-    --------
-    >>> FormatSciUsingError(3.141592653589793,0.02718281828459045)
-    '3.14E+00'
-    >>> FormatSciUsingError(3.141592653589793,0.002718281828459045)
-    '3.142E+00'
-    >>> FormatSciUsingError(3.141592653589793,0.002718281828459045,withError=True)
-    '3.142E+00 (+/- 3E-03)'
-    >>> FormatSciUsingError(3.141592653589793,0.002718281828459045,withError=True,extraDigit=1)
-    '3.1416E+00 (+/- 2.7E-03)'
-    >>> FormatSciUsingError(123456,123,withError=True)
-    '1.235E+05 (+/- 1E+02)'
-    """
-    if abs(x)>=e:
-        NonZeroErrorX=np.floor(np.log10(abs(e)))
-        NonZeroX=np.floor(np.log10(abs(x)))
-        formatCodeX="{0:."+str(int(NonZeroX-NonZeroErrorX+extraDigit))+"E}"
-        formatCodeE="{0:."+str(extraDigit)+"E}"
-    else:
-        formatCodeX="{0:."+str(extraDigit)+"E}"
-        formatCodeE="{0:."+str(extraDigit)+"E}"
-    if withError==True:
-        return formatCodeX.format(x)+" (+/- "+formatCodeE.format(e)+")"
-    else:
-        return formatCodeX.format(x)
-
-def AnnotateFit(fit,axisHandle,annotationText='Eq',color='black',arrow=False,xArrow=0,yArrow=0,xText=0.5,yText=0.2,boxColor='0.9'):
-    """
-    Annotate a figure with information about a PolyReg() fit
-    
-    see https://matplotlib.org/api/_as_gen/matplotlition='cw'):
-    shifthsv=np.copy(hue).astype('float')b.pyplot.annotate.html
-    https://matplotlib.org/examples/pylab_examples/annotation_demo3.html
-    
-    Parameters
-    ----------
-        fit: dict, returned by the function PolyReg(X,Y,order)
-            the fit to be summarized in the figure annotation 
-        axisHandle: a matplotlib axes class
-            the axis handle to the figure to be annotated
-        annotationText: string, optional
-            When "Eq" (the default) displays a formatted polynomial with the coefficients (rounded according to their error) in the fit. When "Box" displays a formatted box with the coefficients and their error terms.  When any other string displays a text box with that string.
-        color: a valid color specification in matplotlib, optional
-            The color of the box outline and connecting arrow.  Default is black. See https://matplotlib.org/users/colors.html
-        arrow: bool, optional
-            If True (default=False) draws a connecting arrow from the annotation to a point on the graph.
-        xArrow: float, optional 
-            The X coordinate of the arrow head using units of the figure's X-axis data. If unspecified or 0 (and arrow=True), defaults to the center of the X-axis.
-        yArrow: float, optional 
-            The Y coordinate of the arrow head using units of the figure's Y-axis data. If unspecified or 0 (and arrow=True), defaults to the calculated Y-value at the center of the X-axis.
-        xText: float, optional 
-            The X coordinate of the annotation text using the fraction of the X-axis (0=left,1=right). If unspecified, defults to the center of the X-axis.
-        yText: float, optional 
-            The Y coordinate of the annotation text using the fraction of the Y-axis (0=bottom,1=top). If unspecified, defults to 20% above the bottom.
-    
-    Returns
-    -------
-    a dragable matplotlib Annotation class
-    
-    Examples
-    --------
-    >>> annLinear=AnnotateFit(fitLinear,ax)
-    >>> annLinear.remove()
-    """
-    c=fit['coefs']
-    e=fit['errors']
-    t=len(c)
-    if annotationText=='Eq':
-        annotationText="y = "
-        for order in range(t):
-            exponent=t-order-1
-            if exponent>=2:
-                annotationText=annotationText+FormatSciUsingError(c[order],e[order])+"x$^{}$".format(exponent)+" + "
-            elif exponent==1:
-                annotationText=annotationText+FormatSciUsingError(c[order],e[order])+"x + "
-            else:
-                annotationText=annotationText+FormatSciUsingError(c[order],e[order])
-        annotationText=annotationText+", sy={0:.1E}".format(fit['sy'])
-    elif annotationText=='Box':
-        annotationText="Fit Details:\n"
-        for order in range(t):
-            exponent=t-order-1
-            annotationText=annotationText+"C$_{x^{"+str(exponent)+"}}$ = "+FormatSciUsingError(c[order],e[order],extraDigit=1)+' $\pm$ '+"{0:.1E}".format(e[order])+'\n'
-        annotationText=annotationText+'n = {0:d}'.format(fit['n'])+', DoF = {0:d}'.format(fit['n']-t)+", s$_y$ = {0:.1E}".format(fit['sy'])
-    if (arrow==True):
-        if (xArrow==0):
-            xSpan=axisHandle.get_xlim()
-            xArrow=np.mean(xSpan)
-        if (yArrow==0):    
-            yArrow=fit['poly'](xArrow)
-        annotationObject=axisHandle.annotate(annotationText, 
-                xy=(xArrow, yArrow), xycoords='data',
-                xytext=(xText, yText),  textcoords='axes fraction',
-                arrowprops={'color': color, 'width':1, 'headwidth':5},
-                bbox={'boxstyle':'round', 'edgecolor':color,'facecolor':boxColor}
-                )
-    else:
-        xSpan=axisHandle.get_xlim()
-        xArrow=np.mean(xSpan)
-        ySpan=axisHandle.get_ylim()
-        yArrow=np.mean(ySpan)
-        annotationObject=axisHandle.annotate(annotationText, 
-                xy=(xArrow, yArrow), xycoords='data',
-                xytext=(xText, yText),  textcoords='axes fraction',
-                ha="left", va="center",
-                bbox={'boxstyle':'round', 'edgecolor':color,'facecolor':boxColor}
-                )
-    annotationObject.draggable()
-    return annotationObject
-
-def RebalanceImageCV(frame,rfactor,gfactor,bfactor):
-    offset=np.zeros(frame[:,:,0].shape,dtype="uint8")
-    frame[:,:,0]=cv2.scaleAdd(frame[:,:,0], bfactor, offset)
-    frame[:,:,1]=cv2.scaleAdd(frame[:,:,1], gfactor, offset)
-    frame[:,:,2]=cv2.scaleAdd(frame[:,:,2], rfactor, offset)
-    return frame
-
-def MidPoint(pt1,pt2):
-    return ((pt1[0]+pt2[0])/2.0, (pt1[1]+pt2[1])/2.0)
-
-def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,DisplayImage,color,integrationWindow,labelFlag,labelText=""):
-    x=np.round(x,decimals=0).astype(int)
-    y=np.round(y,decimals=0).astype(int)
-    w=np.round(w,decimals=0).astype(int)
-    h=np.round(h,decimals=0).astype(int)
-    avgVal=cv2.meanStdDev(image,mask=mask)
-    histdata = cv2.calcHist([image],[channel],mask,[NumBins],[DataMin,DataMax])
-    #domValue=np.argmax(histdata)
-    #domCount=np.max(histdata)/np.sum(histdata) 
-    sortArg=np.argsort(histdata,axis=0)
-    domValue=np.sum(histdata[sortArg[-5:][:,0]][:,0]*sortArg[-5:][:,0])/np.sum(histdata[sortArg[-5:][:,0]][:,0])
-    domCount=np.sum(histdata[sortArg[-5:][:,0]][:,0])/np.sum(histdata)
-    #numpixels=sum(np.array(histdata[domValue-integrationWindow:domValue+integrationWindow+1]))
-    cv2.normalize(histdata, histdata, 0, h, cv2.NORM_MINMAX)
-    if w>NumBins:
-        binWidth = w/NumBins
-    else:
-        binWidth=1
-    #img = np.zeros((h, NumBins*binWidth, 3), np.uint8)
-    for i in range(NumBins):
-        freq = int(histdata[i])
-        cv2.rectangle(DisplayImage, ((i*binWidth)+x, y+h), (((i+1)*binWidth)+x, y+h-freq), color)
-    if labelFlag:
-        cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" p="+'{0:.2f}'.format(domCount)+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
-    return (avgVal[0][channel][0],avgVal[1][channel][0],domValue/float(NumBins-1)*(DataMax-DataMin))
-        
-def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,alpha=1,labelFlag=True):      
-    if xdataRangemin==None: 
-         xdataRangemin=np.min(xdata)       
-    if xdataRangemax==None: 
-         xdataRangemax=np.max(xdata) 
-    if ydataRangemin==None: 
-         ydataRangemin=np.min(ydata) 
-    if ydataRangemax==None: 
-         ydataRangemax=np.max(ydata)
-    xdataRange=xdataRangemax-xdataRangemin
-    ydataRange=ydataRangemax-ydataRangemin
-    if xdataRange!=0:
-        xscale=float(w)/xdataRange
-    else:
-        xscale=1
-    if ydataRange!=0:
-        yscale=float(h)/ydataRange
-    else:
-        yscale=1
-    #changed the code below to loop through the data and us opencv functions to draw the data points
-    xdata=((xdata-xdataRangemin)*xscale).astype(np.int)
-    xdata[xdata>w]=w
-    xdata[xdata<0]=0
-    ydata=((ydataRangemax-ydata)*yscale).astype(np.int)
-    ydata[ydata>h]=h
-    ydata[ydata<0]=0
-    cv2.rectangle(img,(x,y),(x+w+1,y+h+1),color,1)
-    for ptx, pty in zip(xdata, ydata):
-        if xdata.any() > 0 and ydata.any() > 0:
-            cv2.circle(img, (x + ptx,y + pty), 5, (0,255,0), -1)
-        cv2.putText(img,str(round(xdataRangemax,0)),(x+w-15,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
-        cv2.putText(img,str(round(xdataRangemin,0)),(x-5,y+h+15), font, 0.4,color,1,cv2.LINE_AA)
-        cv2.putText(img,str(round(ydataRangemax,0)),(x-40,y+10), font, 0.4,color,1,cv2.LINE_AA)
-        cv2.putText(img,str(round(ydataRangemin,0)),(x-40,y+h-5), font, 0.4,color,1,cv2.LINE_AA)
-        
-        
-def ShiftHOriginToValue(hue,maxHue,newOrigin,direction='cw'):
-    shifthsv=np.copy(hue).astype('float')
-    shiftAmount=maxHue-newOrigin
-    shifthsv[hue<newOrigin]=shifthsv[hue<newOrigin]+shiftAmount
-    shifthsv[hue>=newOrigin]=shifthsv[hue>=newOrigin]-newOrigin
-    hue=shifthsv
-    if direction=='ccw':
-        hue=maxHue-hue
-    return hue
-
-def rotate_bound(image, angle):
-    # grab the dimensions of the image and then determine the
-    # center
-    (h, w) = image.shape[:2]
-    (cX, cY) = (w // 2, h // 2)
-    # grab the rotation matrix (applying the negative of the
-    # angle to rotate clockwise), then grab the sine and cosine
-    # (i.e., the rotation components of the matrix)
-    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
-    cos = np.abs(M[0, 0])
-    sin = np.abs(M[0, 1])
-    # compute the new bounding dimensions of the image
-    nW = int((h * sin) + (w * cos))
-    nH = int((h * cos) + (w * sin))
-    # adjust the rotation matrix to take into account translation
-    M[0, 2] += (nW / 2) - cX
-    M[1, 2] += (nH / 2) - cY
-    # perform the actual rotation and return the image
-    return cv2.warpAffine(image, M, (nW, nH))
 
 linLUTfloat=np.zeros((256),dtype='float32')
 linLUTint=np.zeros((256),dtype='uint8')
@@ -844,7 +481,7 @@ while runFlag:
                             
                                             skipFrame=False        
                                             if circleIndex==4:
-                                                if (cv2.pointPolygonTest(outerBoxContour,MidPoint(ptsFound[0,0:2],ptsFound[2,0:2]),False)==-1) & (cv2.pointPolygonTest(outerBoxContour,MidPoint(ptsFound[0,0:2],ptsFound[3,0:2]),False)==-1):
+                                                if (cv2.pointPolygonTest(outerBoxContour,ip.MidPoint(ptsFound[0,0:2],ptsFound[2,0:2]),False)==-1) & (cv2.pointPolygonTest(outerBoxContour,ip.MidPoint(ptsFound[0,0:2],ptsFound[3,0:2]),False)==-1):
                                                     ptsImage[0,0]=ptsFound[0,0]
                                                     ptsImage[0,1]=ptsFound[0,1]
                                                     ptsImage[1,0]=ptsFound[1,0]
@@ -854,7 +491,7 @@ while runFlag:
                                                     ptsImage[1,1]=ptsFound[0,1]
                                                     ptsImage[0,0]=ptsFound[1,0]
                                                     ptsImage[0,1]=ptsFound[1,1]
-                                                if (cv2.pointPolygonTest(outerBoxContour,MidPoint(ptsImage[1,0:2],ptsFound[2,0:2]),False)==-1):
+                                                if (cv2.pointPolygonTest(outerBoxContour,ip.MidPoint(ptsImage[1,0:2],ptsFound[2,0:2]),False)==-1):
                                                     ptsImage[2,0]=ptsFound[2,0]
                                                     ptsImage[2,1]=ptsFound[2,1]
                                                     ptsImage[3,0]=ptsFound[3,0]
@@ -898,8 +535,8 @@ while runFlag:
                                                 rfactor=float(scalemin)/float(rscale)
                                                 gfactor=float(scalemin)/float(gscale)
                                                 bfactor=float(scalemin)/float(bscale)
-                                            rotImage=RebalanceImageCV(rotImage,rfactor,gfactor,bfactor)
-                                            frame=RebalanceImageCV(frame,rfactor,gfactor,bfactor)
+                                            rotImage=ip.OpenCVRebalanceImage(rotImage,rfactor,gfactor,bfactor)
+                                            frame=ip.OpenCVRebalanceImage(frame,rfactor,gfactor,bfactor)
                                 
                                         rgbWBR[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]] = rotImage[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]]
                                         rgbWBR[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]] = rotImage[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]]
@@ -908,7 +545,7 @@ while runFlag:
                                         maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
                                         for row, displayColor, channel in zip([0,1,2], [(0, 0, 128),(0, 128, 0),(128, 25, 25)], [2,1,0]):              
                                             #ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,maskRO1,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/10)+(row*5),256,(DisplayHeight/12),displayFrame,displayColor,5,True,label)
-                                            ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=OpenCVDisplayedHistogram(rgbWBR,channel,maskWBR,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,False)
+                                            ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=ip.OpenCVDisplayedHistogram(rgbWBR,channel,maskWBR,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,False)
                                 
                                 
                                 #            labWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2LAB)
@@ -930,7 +567,7 @@ while runFlag:
                                         #hsvRO2 = cv2.cvtColor(rgbRO2, cv2.COLOR_BGR2HSV)
                                         #hsvRO3 = cv2.cvtColor(rgbRO3, cv2.COLOR_BGR2HSV)
                             
-                                        hsvRO1[:,:,0]=ShiftHOriginToValue(hsvRO1[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
+                                        hsvRO1[:,:,0]=ip.ShiftHOriginToValue(hsvRO1[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
                                         #hsvRO2[:,:,0]=ShiftHOriginToValue(hsvRO2[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
                                         #hsvRO3[:,:,0]=ShiftHOriginToValue(hsvRO3[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
                             
@@ -1050,7 +687,7 @@ while runFlag:
                                             inputImages= [rgbRO1,rgbRO1,rgbRO1,hsvRO1,hsvRO1,hsvRO1,labRO1,labRO1,labRO1,logsrgbRO1,logsrgbRO1,logsrgbRO1]
                                             for row, displayColor, inputImage, channel, label in zip(rows, displayColors, inputImages, channels,labels):              
                                                 #ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,maskRO1,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/10)+(row*5),256,(DisplayHeight/12),displayFrame,displayColor,5,True,label)
-                                                ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,resMask,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,True,label)
+                                                ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=ip.OpenCVDisplayedHistogram(inputImage,channel,resMask,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,True,label)
                                             ParameterStats[12,0,frameNumber,1]=ParameterStats[10,0,frameNumber,1]-ParameterStats[9,0,frameNumber,1]
                                             ParameterStats[13,0,frameNumber,1]=ParameterStats[11,0,frameNumber,1]-ParameterStats[9,0,frameNumber,1]
                                             ParameterStats[14,0,frameNumber,1]=ParameterStats[10,0,frameNumber,1]-ParameterStats[11,0,frameNumber,1]
@@ -1087,7 +724,7 @@ while runFlag:
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a1x ch'][0],dictSet['a1x ch'][1],0:frameNumber,dictSet['a1x ch'][2]],ParameterStats[dictSet['a1y ch'][0],dictSet['a1y ch'][1],0:frameNumber,dictSet['a1y ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a1x ch'][0],dictSet['a1x ch'][1],0:frameNumber,dictSet['a1x ch'][2]],ParameterStats[dictSet['a1y ch'][0],dictSet['a1y ch'][1],0:frameNumber,dictSet['a1y ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                                 if dictSet['a2x sc'][0]==0:
                                                     xMin=dictSet['a2x sc'][1]
                                                     xMax=dictSet['a2x sc'][2]
@@ -1100,7 +737,7 @@ while runFlag:
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                             if ActiveState=="Process":
                                                 frameNumber=frameNumber+1
                                 
@@ -1121,7 +758,8 @@ while runFlag:
                                                 setColor=(0,0,255)
                                             else:
                                                 setColor=(255,255,255)
-                                            cv2.putText(displayFrame,setting,(DisplayWidth-(parmWidth*5),parmHeight*(setRow+1)), font, fontScale,setColor,1,cv2.LINE_AA)
+                                            ip.OpenCVPutText(displayFrame, setting, (DisplayWidth-(parmWidth*5),parmHeight*(setRow+1)), setColor)
+                                            #cv2.putText(displayFrame,setting,(DisplayWidth-(parmWidth*5),parmHeight*(setRow+1)), font, fontScale,setColor,1,cv2.LINE_AA)
                                             if activeSettingsColumn>len(dictSet[sorted(dictSet)[activeSettingsRow]])-1:
                                                 activeSettingsColumn=len(dictSet[sorted(dictSet)[activeSettingsRow]])-1
                                             for setCol in range(len(dictSet[setting])):
@@ -1443,7 +1081,7 @@ while runFlag:
                                     subject = "Processed I2 Data "+emailSubject
                                     X=ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1][dfBool]
                                     Y=ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1][dfBool]
-                                    fit=PolyReg(X,Y,1)
+                                    fit=da.PolyReg(X,Y,1)
                                     rate=-fit['coefs'][0]
                                     subjectPos=email_subject.lower().find('t')+1
                                     tempC=float(email_subject[subjectPos:subjectPos+2])
