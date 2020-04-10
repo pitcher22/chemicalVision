@@ -218,9 +218,7 @@ while runFlag:
                             if part['Content-Disposition'][:10]=='attachment':
                                 attachFlag=True
                         if (part.get_content_maintype() == 'video') | (attachFlag):
-                                
-                                #timeStruct=time.localtime(timestamp)
-                                
+                                #timeStruct=time.localtime(timestamp)                             
                                 #find creation date and look to the next semicolon
                                 #Cut the string off at the beginning and at end to ensure 
                                 #that only the creation date is taken
@@ -302,10 +300,8 @@ while runFlag:
                                 TotalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                                 frameWidth=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
                                 frameHeight=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                            
                                 liveCapture=False
-                                ActiveState="Process"
-                                    
+                                ActiveState="Process"   
                                 ParameterStats=np.zeros((32,6,TotalFrames*2,5))
                                 frameNumber=0
                                 rows=range(12)
@@ -538,16 +534,6 @@ while runFlag:
                                         for row, displayColor, channel in zip([0,1,2], [(0, 0, 128),(0, 128, 0),(128, 25, 25)], [2,1,0]):              
                                             #ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,maskRO1,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/10)+(row*5),256,(DisplayHeight/12),displayFrame,displayColor,5,True,label)
                                             ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=ip.OpenCVDisplayedHistogram(rgbWBR,channel,maskWBR,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,False)
-                                
-                                                                #            labWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2LAB)
-                                #            inputImages= [rgbWBR,rgbWBR,rgbWBR,hsvWBR,hsvWBR,hsvWBR,labWBR,labWBR,labWBR]
-                                #            for row, displayColor, inputImage, channel, label in zip(rows[0:3], displayColors[0:3], inputImages[0:3], channels[0:3],labels[0:3]):              
-                                #                ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=OpenCVDisplayedHistogram(inputImage,channel,maskWBR,128,0,255,DisplayWidth/2+256+10,5+(row*45),128,40,displayFrame,displayColor,5,False,label)
-                                #            frameWBR=cv2.bitwise_and(rgbWBR,rgbWBR, mask= maskWBR) 
-                                #            scaleWBR=max(frameWBR.shape[1]/(128),frameWBR.shape[0]/(128))
-                                #            imageScaleWBR = cv2.resize(frameWBR, (int(frameWBR.shape[1]/scaleWBR),int(frameWBR.shape[0]/scaleWBR)), interpolation = cv2.INTER_AREA)
-                                #            displayFrame[int(5+(9*45)):int((5+(9*45))+imageScaleWBR.shape[0]),int(DisplayWidth/2+256+10):int(DisplayWidth/2+256+10+imageScaleWBR.shape[1]),:]=imageScaleWBR
-                                
                                         rgbRO2 = rotImage[dictSet['RO2 xy'][1]:dictSet['RO2 xy'][1]+dictSet['RO2 wh'][1], dictSet['RO2 xy'][0]:dictSet['RO2 xy'][0]+dictSet['RO2 wh'][0]]
                                         rgbRO3 = rotImage[dictSet['RO3 xy'][1]:dictSet['RO3 xy'][1]+dictSet['RO3 wh'][1], dictSet['RO3 xy'][0]:dictSet['RO3 xy'][0]+dictSet['RO3 wh'][0]]
                                         rgbRO1 = rotImage[dictSet['RO1 xy'][1]:dictSet['RO1 xy'][1]+dictSet['RO1 wh'][1], dictSet['RO1 xy'][0]:dictSet['RO1 xy'][0]+dictSet['RO1 wh'][0]]
@@ -555,12 +541,8 @@ while runFlag:
                                         rgbRO3summary=cv2.meanStdDev(rgbRO3)
                                 
                                         hsvRO1 = cv2.cvtColor(rgbRO1, cv2.COLOR_BGR2HSV)
-                                        #hsvRO2 = cv2.cvtColor(rgbRO2, cv2.COLOR_BGR2HSV)
-                                        #hsvRO3 = cv2.cvtColor(rgbRO3, cv2.COLOR_BGR2HSV)
                             
                                         hsvRO1[:,:,0]=ip.ShiftHOriginToValue(hsvRO1[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
-                                        #hsvRO2[:,:,0]=ShiftHOriginToValue(hsvRO2[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
-                                        #hsvRO3[:,:,0]=ShiftHOriginToValue(hsvRO3[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
                             
                                         labRO1 = cv2.cvtColor(rgbRO1, cv2.COLOR_BGR2LAB)
                                         logsrgbRO1=cv2.LUT(rgbRO1, linLUTabs)*64
@@ -568,42 +550,6 @@ while runFlag:
                                         #maskRO2 = cv2.inRange(hsvRO2, np.array(dictSet['RO2 ll']), np.array(dictSet['RO2 ul']))
                                         #maskRO3 = cv2.inRange(hsvRO3, np.array(dictSet['RO3 ll']), np.array(dictSet['RO3 ul']))
                                         resFrameWBR = cv2.bitwise_and(rgbWBR,rgbWBR, mask= maskWBR)
-                                        #resFrameRO2 = cv2.bitwise_and(rgbRO2,rgbRO2, mask= maskRO2)
-                                        #resFrameRO3 = cv2.bitwise_and(rgbRO3,rgbRO3, mask= maskRO3)
-                            
-                            #             if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
-                            #                 contours,hierarchy = cv2.findContours(maskRO2,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-                            #             else:
-                            #                 image,contours,hierarchy = cv2.findContours(maskRO2,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-                            #             contourMask=np.zeros((maskRO2.shape),dtype='uint8')
-                            #             if len(contours)>=1:
-                            #                 MaxRO2Area=0
-                            #                 ContourIndex=0
-                            #                 LargestContour=0
-                            #                 for contour in contours:
-                            #                     area=cv2.contourArea(contour)
-                            #                     if area>MaxRO2Area:
-                            #                         MaxRO2Area=area
-                            #                         LargestContour=ContourIndex
-                            #                     ContourIndex=ContourIndex+1
-                            #                 outerRO2Contour=contours[LargestContour]
-                            #                 boundingRectangle=cv2.minAreaRect(outerRO2Contour)
-                                            
-                            #                 #cv2.drawContours(resFrameRO2,[outerRO2Contour],0,(0,255,0),2)
-                            #                 box = cv2.boxPoints(boundingRectangle) 
-                            #                 box = np.int0(box)
-                            #                 #box=box+20
-                                            
-                            #                 maskThermo=np.zeros((maskRO3.shape),dtype='uint8')
-                            #                 cv2.drawContours(resFrameRO2,[box],0,(0,0,255),2)
-                            #                 cv2.drawContours(maskThermo,[box],0,(255),-1)
-                            #                 resFrameRO3 = cv2.bitwise_and(rgbRO3,rgbRO3, mask= maskThermo)
-                            
-                            #             #try using box to define points for 
-                            # #                ptsThermo= np.float32([[600, 160],[220, 126],[221, 107],[849, 141]])
-                            # #                ptsBox= np.float32(box)
-                            # #                MrotTherm = cv2.getPerspectiveTransform(ptsThermo,ptsBox)
-                            # #                rotImageTherm = cv2.warpPerspective(frame,Mrot,(2600,900))
                             
                                         if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
                                             contours,hierarchy = cv2.findContours(maskRO1,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -626,7 +572,6 @@ while runFlag:
                                             cv2.drawContours(contourMask,[outerRO1Contour],0,(255),-1)
                                             resMask = cv2.bitwise_and(maskRO1,maskRO1, mask= contourMask)
                                             resFrameRO1 = cv2.bitwise_and(rgbRO1,rgbRO1, mask= resMask)
-                            
                                             ParameterStats[15,0,frameNumber,1]=MaxRO1Area*cmPerPixel*cmPerPixel
                                             ParameterStats[16,0,frameNumber,1]=boundingRectangle[1][0]
                                             ParameterStats[17,0,frameNumber,1]=boundingRectangle[1][1]
@@ -642,37 +587,29 @@ while runFlag:
                                             ParameterStats[0,1,frameNumber,3]=rgbRO3summary[0][2]
                                             ParameterStats[1,1,frameNumber,3]=rgbRO3summary[0][1]
                                             ParameterStats[2,1,frameNumber,3]=rgbRO3summary[0][0]
-                                            
                                             ParameterStats[31,0,frameNumber,:]=currentTime
                                             ParameterStats[30,0,frameNumber,:]=currentFrame
                                             ParameterStats[29,0,frameNumber,:]=frameRate
                                             #Analytical signal should be in channel 13 of parameter stats B absorbance -R absorbance for I2
                                             labels=["R","G","B","H","S","V","L","a","b","Ra","Ga","Ba","Ga-Ra","Ba-Ra","Ga-Ba"]
-                                
                                             ParameterStats[12,0,frameNumber,:]=ParameterStats[10,0,frameNumber,:]-ParameterStats[9,0,frameNumber,:]
                                             ParameterStats[13,0,frameNumber,:]=ParameterStats[11,0,frameNumber,:]-ParameterStats[9,0,frameNumber,:]
                                             ParameterStats[14,0,frameNumber,:]=ParameterStats[10,0,frameNumber,:]-ParameterStats[11,0,frameNumber,:]
                                             
                                             RO1Scale=max(resFrameRO1.shape[1]/(DisplayWidth/4),resFrameRO1.shape[0]/(DisplayHeight/4))
                                             RO1ImageScale = cv2.resize(resFrameRO1, (int(resFrameRO1.shape[1]/RO1Scale),int(resFrameRO1.shape[0]/RO1Scale)), interpolation = cv2.INTER_AREA)
-                            
                                             WBRScale=max(resFrameWBR.shape[1]/(DisplayWidth/4),resFrameWBR.shape[0]/(DisplayHeight/4))
                                             WBRImageScale = cv2.resize(resFrameWBR, (int(resFrameWBR.shape[1]/WBRScale),int(resFrameWBR.shape[0]/WBRScale)), interpolation = cv2.INTER_AREA)
-                            
                                             resFrameRO2=rgbRO2
                                             RO2Scale=max(resFrameRO2.shape[1]/(DisplayWidth/4),resFrameRO2.shape[0]/(DisplayHeight/4))
                                             RO2ImageScale = cv2.resize(resFrameRO2, (int(resFrameRO2.shape[1]/RO2Scale),int(resFrameRO2.shape[0]/RO2Scale)), interpolation = cv2.INTER_AREA)
-                                            
                                             resFrameRO3=rotImage
                                             RO3Scale=max(resFrameRO3.shape[1]/(DisplayWidth/4),resFrameRO3.shape[0]/(DisplayHeight/4))
                                             RO3ImageScale = cv2.resize(resFrameRO3, (int(resFrameRO3.shape[1]/RO3Scale),int(resFrameRO3.shape[0]/RO3Scale)), interpolation = cv2.INTER_AREA)
-                            
                                             displayFrame[int(displayFrame.shape[0]/2):int((displayFrame.shape[0]/2)+RO1ImageScale.shape[0]),0:RO1ImageScale.shape[1],:]=RO1ImageScale
                                             displayFrame[int(displayFrame.shape[0]/2)+int(displayFrame.shape[0]/4):int(displayFrame.shape[0]/2)+int(displayFrame.shape[0]/4)+RO2ImageScale.shape[0],0:RO2ImageScale.shape[1],:]=RO2ImageScale
-                            
                                             displayFrame[int(displayFrame.shape[0]/2):int((displayFrame.shape[0]/2)+WBRImageScale.shape[0]) , int(displayFrame.shape[0]/2):int(displayFrame.shape[0]/2)+WBRImageScale.shape[1],:]=WBRImageScale
                                             displayFrame[int(displayFrame.shape[0]/2)+int(displayFrame.shape[0]/4):int(displayFrame.shape[0]/2)+int(displayFrame.shape[0]/4)+RO3ImageScale.shape[0] , int(displayFrame.shape[0]/2):int(displayFrame.shape[0]/2)+RO3ImageScale.shape[1],:]=RO3ImageScale
-                            
                                             inputImages= [rgbRO1,rgbRO1,rgbRO1,hsvRO1,hsvRO1,hsvRO1,labRO1,labRO1,labRO1,logsrgbRO1,logsrgbRO1,logsrgbRO1]
                                             for row, displayColor, inputImage, channel, label in zip(rows, displayColors, inputImages, channels,labels):              
                                                 #ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,maskRO1,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/10)+(row*5),256,(DisplayHeight/12),displayFrame,displayColor,5,True,label)
@@ -680,7 +617,6 @@ while runFlag:
                                             ParameterStats[12,0,frameNumber,1]=ParameterStats[10,0,frameNumber,1]-ParameterStats[9,0,frameNumber,1]
                                             ParameterStats[13,0,frameNumber,1]=ParameterStats[11,0,frameNumber,1]-ParameterStats[9,0,frameNumber,1]
                                             ParameterStats[14,0,frameNumber,1]=ParameterStats[10,0,frameNumber,1]-ParameterStats[11,0,frameNumber,1]
-                                
                                             maskRO1Volume = cv2.inRange(hsvRO1, np.array([int(ParameterStats[3,0,frameNumber,1]-ParameterStats[3,1,frameNumber,1]),int(ParameterStats[4,0,frameNumber,1]-ParameterStats[4,1,frameNumber,1]),int(ParameterStats[5,0,frameNumber,1]-ParameterStats[5,1,frameNumber,1])]), np.array([255,255,255]))
                                             if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
                                                 contours,hierarchy = cv2.findContours(maskRO1Volume,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -699,7 +635,6 @@ while runFlag:
                                                     ContourIndex=ContourIndex+1
                                                 outerRO1ContourVolume=contours[LargestContour]
                                             ParameterStats[18,0,frameNumber,1]=MaxRO1AreaVolume*cmPerPixel*cmPerPixel
-                                
                                             if frameNumber>=2:
                                                 if dictSet['a1x sc'][0]==0:
                                                     xMin=dictSet['a1x sc'][1]
@@ -729,13 +664,10 @@ while runFlag:
                                                 ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255), 1, ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                             if ActiveState=="Process":
                                                 frameNumber=frameNumber+1
-                                
                                     frameScale=max(frameWidth/(DisplayWidth/2.0),frameHeight/(DisplayHeight/2.0))
                                     #frameImageScale = cv2.resize(frame, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
                                     frameImageScale = cv2.resize(img, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
-
                                     displayFrame[0:frameImageScale.shape[0],0:frameImageScale.shape[1],:]=frameImageScale
-                                    
                                     fontScale=0.3
                                     if settingsFlag:
                                         parmHeight=int(DisplayHeight/60.0)
@@ -758,7 +690,6 @@ while runFlag:
                                                     setColor=(255,255,255)
                                                 cv2.putText(displayFrame,str(dictSet[setting][setCol]),(DisplayWidth-(parmWidth*3)+(parmWidth*setCol),parmHeight*(setRow+1)), font, fontScale,setColor,1,cv2.LINE_AA)
                                             #cv2.putText(displayFrame,'LL: H '++', S '+str(SensorLower_lim[1])+', V '+str(SensorLower_lim[2]),(DisplayWidth-128,12*2), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                    
                                     if displayHelp:
                                         quitKey = ' to quit'
                                         pauseKey = ' to pause'
@@ -771,26 +702,17 @@ while runFlag:
                                         increaseSettingValue = ' to increase value'
                                         decreaseSettingValue = ' to decrease value'
                                         moveSettings = ' to change selected setting'
-
                                         helpInfo = {quitKey: '"q"', pauseKey: '"p"', rrBig: '"j"', rrSmall: '"h"', ffSmall: '"k"', ffBig: '"l"', showInfo: '"i"', toggleSettingsKey: '"t"', increaseSettingValue: '"+"', decreaseSettingValue: '"-"', moveSettings: '"wasd"'}
                                         fontSpacing = int(1300)
-                                        
                                         textXlocation = int(dictSet['dsp wh'][0] * (2/fontSpacing))
                                         textYlocation = DisplayHeight - int(dictSet['dsp wh'][0] * (8/fontSpacing))
-                                        
-<<<<<<< HEAD:combinedI2_2_8.py
-=======
                                         for key in helpInfo.keys():
                                             cv2.putText(displayFrame, helpInfo[key], (textXlocation,textYlocation), font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                             textXlocation = textXlocation + (5*len(helpInfo[key])) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
                                             cv2.putText(displayFrame, key, (textXlocation, textYlocation), font, fontScale,(0,255,0),1,cv2.LINE_AA)
                                             textXlocation = textXlocation + (5*len(key)) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
-                                    
->>>>>>> Bunger:combinedI2_2_8_withLoop.py
                                     else:
                                         cv2.putText(displayFrame,'type "?" for hotkeys', (2,DisplayHeight-8),font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        
-                                    #cv2.imshow('Result', img)
                                     if ActiveState=="Pause":
                                         cv2.rectangle(displayFrame, (int(DisplayWidth*0.425/2),int(DisplayHeight*0.2/2)), (int(DisplayWidth*0.475/2),int(DisplayHeight*0.8/2)), (255,255,255),-1)
                                         cv2.rectangle(displayFrame, (int(DisplayWidth*0.525/2),int(DisplayHeight*0.2/2)), (int(DisplayWidth*0.575/2),int(DisplayHeight*0.8/2)), (255,255,255),-1)
@@ -802,20 +724,8 @@ while runFlag:
                                         cv2.imshow('RO2', rgbRO2)
                                         cv2.imshow('RO3', rgbRO3)
                                         cv2.imshow('rotImage', rotImage)
-                                    #reads the keyboard
                                     if RecordFlag & (ActiveState=="Process"):
-                                        #cv2.putText(img,"REC",(10,10), font, .5,(0,0,255),2,cv2.LINE_AA) 
-                            #            if overlayFlag:
-                            #                dim2=frameImageScale.shape[0]
-                            #                dim1=frameImageScale.shape[1]
-                            #                #OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,labelFlag=True)
-                            #                OpenCVDisplayedScatter(frameImageScale, ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1],ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1],int(dim1/10),int(dim2/10),int(dim1/4),int(dim2/3),(255,255,255),ydataRangemin=10, ydataRangemax=45,xdataRangemin=xMin, xdataRangemax=xMax)
-                            #                cv2.imshow('frameImageScale', frameImageScale)
-                            #                if (currentTime>100) & (currentTime<400):
-                            #                    outp.write(frameImageScale)
-                            #            else:
                                             outp.write(displayFrame)
-                                        #outr.write(frame)
                                     keypress=cv2.waitKeyEx(1)
                                     #print(keypress)
                                     changeCameraFlag=False
@@ -839,19 +749,15 @@ while runFlag:
                                         else:
                                             ActiveState="Pause"
                                     if keypress == ord('l'):
-                                #        currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)
                                         if currentFrame+(frameRate*10)<TotalFrames:
                                             cap.set(cv2.CAP_PROP_POS_FRAMES,currentFrame+(frameRate*10))
                                     if keypress == ord('h'):
-                                #        currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)
                                         if currentFrame-(frameRate*10)>0:
                                             cap.set(cv2.CAP_PROP_POS_FRAMES,currentFrame-(frameRate*10))
                                     if keypress == ord('k'):
-                                #        currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)
                                         if currentFrame<TotalFrames:
                                             cap.set(cv2.CAP_PROP_POS_FRAMES,currentFrame+1)
                                     if keypress == ord('j'):
-                                #        currentFrame=cap.get(cv2.CAP_PROP_POS_FRAMES)f
                                         if currentFrame>0:
                                             cap.set(cv2.CAP_PROP_POS_FRAMES,currentFrame-1)
                                     if settingsFlag:
@@ -883,7 +789,6 @@ while runFlag:
                                 cv2.destroyAllWindows()
                                 if RecordFlag:
                                     outp.release()
-                                    #outd.release()
                             
                                 dfMean=pd.DataFrame(data=ParameterStats[0:12,0,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfStdev=pd.DataFrame(data=ParameterStats[0:12,1,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
@@ -957,8 +862,6 @@ while runFlag:
                                             'border':   {'color': '#490648'},
                                     },
                                 })
-                            
-                                #chart1.set_title ({'name': labels[dictSet['a1y ch'][0]]+' Change'})
                                 if (ParameterStats[dictSet['a1x ch'][0],0,0:frameNumber,1].size!=0) and (ParameterStats[dictSet['a1y ch'][0],0,0:frameNumber,1].size!=0):
                                     chart1.set_x_axis({
                                             'name': 'Time (seconds)',
@@ -976,7 +879,6 @@ while runFlag:
                                     #chart1.set_style(6)
                                     chart1.set_legend({'position': 'none'})
                                     worksheetFit.insert_chart('H8', chart1, {'x_offset': 25, 'y_offset': 10})
-                                
                                 dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=6,index=False)
                                 dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=19,index=False)
                                 dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=32,index=False)
@@ -994,11 +896,8 @@ while runFlag:
                                 worksheetData.write_column('C3', ParameterStats[15,0,0:frameNumber,1])
                                 worksheetData.write_column('D3', ParameterStats[16,0,0:frameNumber,1])
                                 worksheetData.write_column('E3', ParameterStats[17,0,0:frameNumber,1])
-                                
                                 workbook.close()
                                 writer.save()
-                            
-                                #returnAddress emailSubject
                             
                                 sendemail = False
                                 if sendemail == True:
@@ -1071,21 +970,14 @@ while runFlag:
                                         #f"attachment; filename= {filename}",
                                         "attachment; filename={}".format(filename),
                                     )
-                                    
                                     # Add attachment to message and convert message to string
                                     message.attach(part)
-                                    
                                     text = message.as_string()
-                                    
                                     # Log in to server using secure context and send email
                                     context = ssl.create_default_context()
                                     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
                                         server.login(sender_email, password)
                                         server.sendmail(sender_email, receiver_email, text)
-            
-        # if stopFlag:
-        #     break
-        
 saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
