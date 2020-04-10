@@ -62,8 +62,8 @@ if versionOS=='W':
     filePathEmail=os.getcwd()+'\\EmailedVideo'
     filePathSettings=os.getcwd()+'\\Settings'
     osSep='\\'
-    fourcc = cv2.VideoWriter_fourcc(*'MP42')
-    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #fourcc = cv2.VideoWriter_fourcc(*'MP42')
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
     #fourcc = cv2.VideoWriter_fourcc(*'X264')
 elif versionOS=='L':
@@ -85,7 +85,7 @@ elif versionOS=='M':
     osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
-#font = cv2.FONT_HERSHEY_SIMPLEX
+font = cv2.FONT_HERSHEY_SIMPLEX
     
 runMode = input("Are you downloading from an email? (Y/n): ")
 if (runMode == "y")|(runMode == "Y"):
