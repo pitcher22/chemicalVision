@@ -18,7 +18,6 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import data_analysis_helpers as da
-#from image_processing_source_file import *
 import image_processing_source_file as ip
 #import datetime
 
@@ -87,7 +86,7 @@ elif versionOS=='M':
     osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
-font = cv2.FONT_HERSHEY_SIMPLEX
+#font = cv2.FONT_HERSHEY_SIMPLEX
     
 runMode = input("Are you downloading from an email? (Y/n): ")
 if (runMode == "y")|(runMode == "Y"):
@@ -787,6 +786,7 @@ while runFlag:
                                         moveRightSettings = ' to move right'
                                         
                                         textXlocation=2
+                                        ip.OpenCVPutText(displayFrame, '"q"', (textXlocation,DisplayHeight-8), (255,255,255))
                                         cv2.putText(displayFrame,'"q"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                         textXlocation=textXlocation+15
                                         cv2.putText(displayFrame, quitKey, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
