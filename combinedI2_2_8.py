@@ -21,7 +21,6 @@ import data_analysis_helpers as da
 import image_processing_source_file as ip
 #import datetime
 
-
 """
 SETUP
 #all imports, OS specific settings, read/load settings file
@@ -98,7 +97,6 @@ else:
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
 
- 
 emailStartTime=time.mktime((2019,2,6,0,0,0,0,0,-1))
 endTime=time.mktime((2020,2,14,18,30,0,0,0,-1))
 dayLightSavings=False
@@ -108,7 +106,6 @@ if dayLightSavings:
 else:
     greenwichTimeAdjustment = 8
     
-
 referenceFlag=True
 settingsFlag=False    
 RecordFlag=True
@@ -117,7 +114,6 @@ displayHelp=True
 cmPerPixel=2.54/300
 
 ActiveState="Process"
-
 
 linLUTfloat=np.zeros((256),dtype='float32')
 linLUTint=np.zeros((256),dtype='uint8')
@@ -135,8 +131,6 @@ for chan in range(256):
     else:
         linLUTabs[chan]=-np.log10(val)
         
-
-
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
 #read a limits file as well here to set upperLimitString
 if (useFile=="f") | (useFile=="F"):
@@ -164,7 +158,6 @@ dictUL=eval(settingString)
 mail = imaplib.IMAP4_SSL(SMTP_SERVER)
 mail.login(FROM_EMAIL,FROM_PWD)
 last_processed_email=0
-
 
 runFlag=True
 monitorEmailFlag=True
@@ -510,7 +503,6 @@ while runFlag:
                                         rotImage = np.copy(frame)
                                         skipFrame=False
                            
-                            
                                     if skipFrame==False:
                                         # Working here: Idea is to put multiple rectangular regions into rgbWBR
                                         rgbWBR=np.zeros((rotImage.shape),dtype='uint8')
@@ -546,8 +538,7 @@ while runFlag:
                                             #ParameterStats[row,0,frameNumber,1],ParameterStats[row,1,frameNumber,1],ParameterStats[row,2,frameNumber,1]=OpenCVDisplayedHistogram(inputImage,channel,maskRO1,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/10)+(row*5),256,(DisplayHeight/12),displayFrame,displayColor,5,True,label)
                                             ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=ip.OpenCVDisplayedHistogram(rgbWBR,channel,maskWBR,256,0,255,DisplayWidth/2,5+(row*DisplayHeight/14)+(row*6),256,(DisplayHeight/16),displayFrame,displayColor,5,False)
                                 
-                                
-                                #            labWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2LAB)
+                                                                #            labWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2LAB)
                                 #            inputImages= [rgbWBR,rgbWBR,rgbWBR,hsvWBR,hsvWBR,hsvWBR,labWBR,labWBR,labWBR]
                                 #            for row, displayColor, inputImage, channel, label in zip(rows[0:3], displayColors[0:3], inputImages[0:3], channels[0:3],labels[0:3]):              
                                 #                ParameterStats[row,0,frameNumber,0],ParameterStats[row,1,frameNumber,0],ParameterStats[row,2,frameNumber,0]=OpenCVDisplayedHistogram(inputImage,channel,maskWBR,128,0,255,DisplayWidth/2+256+10,5+(row*45),128,40,displayFrame,displayColor,5,False,label)
@@ -597,7 +588,6 @@ while runFlag:
                             #                 outerRO2Contour=contours[LargestContour]
                             #                 boundingRectangle=cv2.minAreaRect(outerRO2Contour)
                                             
-                                            
                             #                 #cv2.drawContours(resFrameRO2,[outerRO2Contour],0,(0,255,0),2)
                             #                 box = cv2.boxPoints(boundingRectangle) 
                             #                 box = np.int0(box)
@@ -614,7 +604,6 @@ while runFlag:
                             # #                MrotTherm = cv2.getPerspectiveTransform(ptsThermo,ptsBox)
                             # #                rotImageTherm = cv2.warpPerspective(frame,Mrot,(2600,900))
                             
-                                            
                                         if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
                                             contours,hierarchy = cv2.findContours(maskRO1,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
                                         else:
@@ -859,8 +848,6 @@ while runFlag:
                                         cv2.putText(displayFrame, moveRightSettings, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
                                         textXlocation=textXlocation + (5*len(moveRightSettings)) + 10
                                         
-                                    
-                                    
                                     else:
                                         cv2.putText(displayFrame,'type "?" for hotkeys', (2,DisplayHeight-8),font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                         
@@ -959,7 +946,6 @@ while runFlag:
                                     outp.release()
                                     #outd.release()
                             
-                                    
                                 dfMean=pd.DataFrame(data=ParameterStats[0:12,0,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfStdev=pd.DataFrame(data=ParameterStats[0:12,1,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
                                 dfMost=pd.DataFrame(data=ParameterStats[0:12,2,0:frameNumber,1].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=ParameterStats[31,0,0:frameNumber,1])
@@ -1073,7 +1059,6 @@ while runFlag:
                                 workbook.close()
                                 writer.save()
                             
-                                
                                 #returnAddress emailSubject
                             
                                 sendemail = False
@@ -1130,7 +1115,6 @@ while runFlag:
                                     # Add attachment to message and convert message to string
                                     message.attach(part)
                                     
-    
                                     filename = file_path+"Processed.mp4"
                                     # Open PDF file in binary mode
                                     with open(filename, "rb") as attachment:
@@ -1152,7 +1136,6 @@ while runFlag:
                                     # Add attachment to message and convert message to string
                                     message.attach(part)
                                     
-                                    
                                     text = message.as_string()
                                     
                                     # Log in to server using secure context and send email
@@ -1164,7 +1147,6 @@ while runFlag:
         # if stopFlag:
         #     break
         
-
 saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
