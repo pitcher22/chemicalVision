@@ -49,7 +49,7 @@ if versionPython==2:
     import Tkinter as tk
     from tkFileDialog import askopenfilename
     from tkFileDialog import asksaveasfilename
-    #input=raw_input
+    input=raw_input
 else:
     import tkinter as tk
     from tkinter.filedialog import askopenfilename
@@ -770,84 +770,20 @@ while runFlag:
                                         toggleSettingsKey = ' to toggle settings'
                                         increaseSettingValue = ' to increase value'
                                         decreaseSettingValue = ' to decrease value'
-                                        moveUpSettings = ' to move up'
-                                        moveDownSettings = ' to move down' 
-                                        moveLeftSettings = ' to move left'
-                                        moveRightSettings = ' to move right'
+                                        moveSettings = ' to change selected setting'
+
+                                        helpInfo = {quitKey: '"q"', pauseKey: '"p"', rrBig: '"j"', rrSmall: '"h"', ffSmall: '"k"', ffBig: '"l"', showInfo: '"i"', toggleSettingsKey: '"t"', increaseSettingValue: '"+"', decreaseSettingValue: '"-"', moveSettings: '"wasd"'}
+                                        fontSpacing = int(1300)
                                         
-                                        textXlocation=2
-                                        cv2.putText(displayFrame,'"q"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, quitKey, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(quitKey)) + 10
+                                        textXlocation = int(dictSet['dsp wh'][0] * (2/fontSpacing))
+                                        textYlocation = DisplayHeight - int(dictSet['dsp wh'][0] * (8/fontSpacing))
                                         
-                                        
-                                        cv2.putText(displayFrame,'"p"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, pauseKey, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(pauseKey)) + 10
-                            
-                                        
-                                        cv2.putText(displayFrame,'"j"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + 15
-                                        cv2.putText(displayFrame, rrSmall, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(rrSmall)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"h"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, rrBig, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(rrBig)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"k"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame,ffSmall, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(ffSmall)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"l"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, ffBig, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(ffBig)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"i"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, showInfo, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(showInfo)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"t"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, toggleSettingsKey, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(toggleSettingsKey)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"+"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, increaseSettingValue, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(increaseSettingValue)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"-"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, decreaseSettingValue, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(decreaseSettingValue)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"w"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, moveUpSettings, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(moveUpSettings)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"a"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, moveLeftSettings, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(moveLeftSettings)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"s"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, moveDownSettings, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(moveDownSettings)) + 10
-                                        
-                                        cv2.putText(displayFrame,'"d"', (textXlocation,DisplayHeight-8), font, fontScale,(255,255,255),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation+15
-                                        cv2.putText(displayFrame, moveRightSettings, (textXlocation,DisplayHeight-8), font, fontScale,(128,128,128),1,cv2.LINE_AA)
-                                        textXlocation=textXlocation + (5*len(moveRightSettings)) + 10
-                                        
+                                        for key in helpInfo.keys():
+                                            cv2.putText(displayFrame, helpInfo[key], (textXlocation,textYlocation), font, fontScale,(255,255,255),1,cv2.LINE_AA)
+                                            textXlocation = textXlocation + (5*len(helpInfo[key])) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
+                                            cv2.putText(displayFrame, key, (textXlocation, textYlocation), font, fontScale,(0,255,0),1,cv2.LINE_AA)
+                                            textXlocation = textXlocation + (5*len(key)) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
+                                    
                                     else:
                                         cv2.putText(displayFrame,'type "?" for hotkeys', (2,DisplayHeight-8),font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                         
