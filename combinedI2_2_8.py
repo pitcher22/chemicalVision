@@ -712,7 +712,7 @@ while runFlag:
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a1x ch'][0],dictSet['a1x ch'][1],0:frameNumber,dictSet['a1x ch'][2]],ParameterStats[dictSet['a1y ch'][0],dictSet['a1y ch'][1],0:frameNumber,dictSet['a1y ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a1x ch'][0],dictSet['a1x ch'][1],0:frameNumber,dictSet['a1x ch'][2]],ParameterStats[dictSet['a1y ch'][0],dictSet['a1y ch'][1],0:frameNumber,dictSet['a1y ch'][2]],dictSet['pl1 xy'][0],dictSet['pl1 xy'][1],dictSet['pl1 wh'][0],dictSet['pl1 wh'][1],(255,255,255), 1, ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                                 if dictSet['a2x sc'][0]==0:
                                                     xMin=dictSet['a2x sc'][1]
                                                     xMax=dictSet['a2x sc'][2]
@@ -725,7 +725,7 @@ while runFlag:
                                                 else:
                                                     yMin=None
                                                     yMax=None     
-                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255),ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
+                                                ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255), 1, ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                             if ActiveState=="Process":
                                                 frameNumber=frameNumber+1
                                 

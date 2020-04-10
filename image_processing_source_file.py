@@ -2,7 +2,7 @@
 """
 Created on Fri Apr  3 16:12:20 2020
 
-@author: Dabid
+@author: David Campbell 
 """
 import cv2
 import numpy as np
@@ -54,7 +54,7 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
         cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" p="+'{0:.2f}'.format(domCount)+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
     return (avgVal[0][channel][0],avgVal[1][channel][0],domValue/float(NumBins-1)*(DataMax-DataMin))
         
-def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None,alpha=1,labelFlag=True):      
+def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color, circleThickness,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None, alpha=1,labelFlag=True):      
     if xdataRangemin==None: 
          xdataRangemin=np.min(xdata)       
     if xdataRangemax==None: 
@@ -84,7 +84,7 @@ def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color,ydataRangemin=None, yd
     cv2.rectangle(img,(x,y),(x+w+1,y+h+1),color,1)
     for ptx, pty in zip(xdata, ydata):
         if xdata.any() > 0 and ydata.any() > 0:
-            cv2.circle(img, (x + ptx,y + pty), 5, (0,255,0), -1)
+            cv2.circle(img, (x + ptx,y + pty), circleThickness, color, -1)
     OpenCVPutText(img,str(round(xdataRangemax,0)),(x+w-15,y+h+15),color, fontScale = w / 700)
     OpenCVPutText(img,str(round(xdataRangemin,0)),(x-5,y+h+15),color, fontScale = w / 700)
     OpenCVPutText(img,str(round(ydataRangemax,0)),(x-40,y+10),color, fontScale = w / 700)
