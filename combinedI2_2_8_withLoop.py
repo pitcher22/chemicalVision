@@ -777,16 +777,15 @@ while runFlag:
                                         
                                         textXlocation = int(dictSet['dsp wh'][0] * (2/fontSpacing))
                                         textYlocation = DisplayHeight - int(dictSet['dsp wh'][0] * (8/fontSpacing))
-                                        
-<<<<<<< HEAD:combinedI2_2_8.py
-=======
+
+
                                         for key in helpInfo.keys():
                                             cv2.putText(displayFrame, helpInfo[key], (textXlocation,textYlocation), font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                             textXlocation = textXlocation + (5*len(helpInfo[key])) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
                                             cv2.putText(displayFrame, key, (textXlocation, textYlocation), font, fontScale,(0,255,0),1,cv2.LINE_AA)
                                             textXlocation = textXlocation + (5*len(key)) + int(dictSet['dsp wh'][0] * (5/fontSpacing))
                                     
->>>>>>> Bunger:combinedI2_2_8_withLoop.py
+
                                     else:
                                         cv2.putText(displayFrame,'type "?" for hotkeys', (2,DisplayHeight-8),font, fontScale,(255,255,255),1,cv2.LINE_AA)
                                         
