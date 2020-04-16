@@ -92,9 +92,11 @@ runMode = input("Are you downloading from an email? (Y/n): ")
 if (runMode == "y")|(runMode == "Y"):
     FROM_EMAIL = input("Please enter your email address: ")
     FROM_PWD = input("Please enter your password: ")
+    localFlag=False
 else:
     video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.MOV'),('all files', '.*')])
-
+    localFlag=True
+    
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
 
@@ -155,13 +157,16 @@ settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
 settingString=settingsFile.read()
 settingsFile.close()
 dictUL=eval(settingString)
-    
-mail = imaplib.IMAP4_SSL(SMTP_SERVER)
-mail.login(FROM_EMAIL,FROM_PWD)
-last_processed_email=0
 
+if localFlag==False:    
+    mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+    mail.login(FROM_EMAIL,FROM_PWD)
+    last_processed_email=0
+    monitorEmailFlag=True
+else:
+    monitorEmailFlag=False
+    
 runFlag=True
-monitorEmailFlag=True
 
 while runFlag:
     while monitorEmailFlag:
