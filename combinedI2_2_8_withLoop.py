@@ -68,10 +68,10 @@ if versionOS=='W':
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
     #fourcc = cv2.VideoWriter_fourcc(*'X264')
 elif versionOS=='L':
-    ltArrow=81
-    upArrow=82
-    rtArrow=83
-    dnArrow=84
+    ltArrow=65361
+    upArrow=65362
+    rtArrow=65363
+    dnArrow=65364
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
     osSep='/'
