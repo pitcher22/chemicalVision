@@ -68,10 +68,10 @@ if versionOS=='W':
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
     #fourcc = cv2.VideoWriter_fourcc(*'X264')
 elif versionOS=='L':
-    ltArrow=81
-    upArrow=82
-    rtArrow=83
-    dnArrow=84
+    ltArrow=65361
+    upArrow=65362
+    rtArrow=65363
+    dnArrow=65364
     filePathEmail=os.getcwd()+'/EmailedVideo'
     filePathSettings=os.getcwd()+'/Settings'
     osSep='/'
@@ -339,6 +339,9 @@ while runFlag:
                                     else:
                                         outp = cv2.VideoWriter(outFileName,fourcc, frameRate, (DisplayWidth, DisplayHeight))
                                 while(liveCapture | (currentFrame<=TotalFrames) ):
+                                    
+                                    #Process a single frame starts here
+                                    
                                     DisplayWidth=dictSet['dsp wh'][0]
                                     DisplayHeight=dictSet['dsp wh'][1]
                                     if liveCapture:
@@ -669,6 +672,9 @@ while runFlag:
                                                 ip.OpenCVDisplayedScatter(displayFrame, ParameterStats[dictSet['a2x ch'][0],dictSet['a2x ch'][1],0:frameNumber,dictSet['a2x ch'][2]],ParameterStats[dictSet['a2y ch'][0],dictSet['a2y ch'][1],0:frameNumber,dictSet['a2y ch'][2]],dictSet['pl2 xy'][0],dictSet['pl2 xy'][1],dictSet['pl2 wh'][0],dictSet['pl2 wh'][1],(255,255,255), 1, ydataRangemin=yMin, ydataRangemax=yMax,xdataRangemin=xMin, xdataRangemax=xMax)
                                             if ActiveState=="Process":
                                                 frameNumber=frameNumber+1
+                                    
+                                    #single frame process ends here
+                                    
                                     frameScale=max(frameWidth/(DisplayWidth/2.0),frameHeight/(DisplayHeight/2.0))
                                     #frameImageScale = cv2.resize(frame, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
                                     frameImageScale = cv2.resize(img, (int(frameWidth/frameScale),int(frameHeight/frameScale)), interpolation = cv2.INTER_AREA)
