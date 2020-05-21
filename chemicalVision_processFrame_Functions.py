@@ -1,34 +1,3 @@
-from __future__ import division
-from __future__ import print_function
-import sys
-import os
-import time
-import numpy as np
-import pandas as pd
-#requires: pip install opencv-python
-import cv2
-import smtplib
-import imaplib
-import email
-import email.utils
-from time import strftime
-import ssl
-from email import encoders
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import data_analysis_helpers as da
-#from image_processing_source_file import *
-import image_processing_source_file as ip
-#import datetime
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 19 17:15:17 2020
-
-@author: kevin
-"""
 def FindLargestContour(mask):
     if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
         contours,hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -76,20 +45,16 @@ def FindContoursInside(mask,boundingContour,areaMin,areaMax,drawColor,frameForDr
     
 def RegisterImage(frame,frameForDrawing,dictSet):
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
     boxMask = cv2.inRange(hsvFrame, np.array(dictSet['box ll']), np.array(dictSet['box ul'])) 
     c12CircleMask = cv2.inRange(hsvFrame, np.array(dictSet['c12 ll']), np.array(dictSet['c12 ul'])) 
     c34CircleMask = cv2.inRange(hsvFrame, np.array(dictSet['c34 ll']), np.array(dictSet['c34 ul'])) 
-
     outerBoxContour,boxArea=FindLargestContour(boxMask)
     cv2.drawContours(frameForDrawing,[outerBoxContour],0,(0,255,0),2)
     ptsC12 = FindContoursInside(c12CircleMask,outerBoxContour,boxArea*0.005,boxArea*0.25,(255,0,0),frameForDrawing)    
     ptsC34 = FindContoursInside(c34CircleMask,outerBoxContour,boxArea*0.005,boxArea*0.25,(0,0,255),frameForDrawing)    
-    
     ptsFound = np.concatenate((ptsC12, ptsC34), axis=0) 
     ptsCard = np.float32([[dictSet['cl1 xy'][0],dictSet['cl1 xy'][1]],[dictSet['cl2 xy'][0],dictSet['cl2 xy'][1]],[dictSet['cl3 xy'][0],dictSet['cl3 xy'][1]],[dictSet['cl4 xy'][0],dictSet['cl4 xy'][1]]])
     ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
-    
     if ptsFound.shape[0]==4:
         if (cv2.pointPolygonTest(outerBoxContour,ip.MidPoint(ptsFound[0,0:2],ptsFound[2,0:2]),False)==-1) & (cv2.pointPolygonTest(outerBoxContour,ip.MidPoint(ptsFound[0,0:2],ptsFound[3,0:2]),False)==-1):
             ptsImage[0,0]=ptsFound[0,0]
@@ -112,14 +77,48 @@ def RegisterImage(frame,frameForDrawing,dictSet):
             ptsImage[2,0]=ptsFound[3,0]
             ptsImage[2,1]=ptsFound[3,1]
         Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
-        #rotImage = cv2.warpPerspective(frame,Mrot,(1800,1200))
         rotImage = cv2.warpPerspective(frame,Mrot,(2600,900))
         return(rotImage)
     else:
-        return(False)
-    
-    
+        return(np.array([0]))
 
+def WhiteBalanceFrame(rotImage,frame,dictSet):
+    rgbWBR=np.zeros((rotImage.shape),dtype='uint8')
+    rgbWBR[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]] = rotImage[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]]
+    rgbWBR[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]] = rotImage[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]]
+    rgbWBR[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]] = rotImage[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]]
+    hsvWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2HSV)
+    maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
+    if np.sum(maskWBR)>0:
+        RGBGreyWBR=cv2.mean(rgbWBR, mask=maskWBR)
+        bscale=RGBGreyWBR[0]
+        gscale=RGBGreyWBR[1]
+        rscale=RGBGreyWBR[2]
+        scalemax=max(rscale,gscale,bscale)
+        if dictSet['WBR sc'][0]!=0:
+            scalemin=dictSet['WBR sc'][0]
+        else:
+            scalemin=min(rscale,gscale,bscale)
+        if (scalemin!=0) & (min(rscale,gscale,bscale)!=0):
+            rfactor=float(scalemin)/float(rscale)
+            gfactor=float(scalemin)/float(gscale)
+            bfactor=float(scalemin)/float(bscale)
+        rotImage=ip.OpenCVRebalanceImage(rotImage,rfactor,gfactor,bfactor)
+        frame=ip.OpenCVRebalanceImage(frame,rfactor,gfactor,bfactor)
+    rgbWBR[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]] = rotImage[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]]
+    rgbWBR[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]] = rotImage[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]]
+    rgbWBR[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]] = rotImage[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]]
+    return(rgbWBR,rotImage,frame)
+
+
+
+
+
+
+
+    
+cap = cv2.VideoCapture(video_file_path)
+ret, frame = cap.read()    
 def ProcessOneFrame(frame,dictSet):    
     displayWidth=dictSet['dsp wh'][0]
     displayHeight=dictSet['dsp wh'][1]
@@ -129,7 +128,8 @@ def ProcessOneFrame(frame,dictSet):
     
     if flgFindReference:
         rotImage = RegisterImage(frame,img,dictSet)
-        if rotImage==False:
+        skipFrame=False
+        if rotImage.size==1:
             skipFrame=True
     else:
         rotImage = np.copy(frame)
@@ -137,33 +137,7 @@ def ProcessOneFrame(frame,dictSet):
    
     if skipFrame==False:
         # Working here: Idea is to put multiple rectangular regions into rgbWBR
-        rgbWBR=np.zeros((rotImage.shape),dtype='uint8')
-        rgbWBR[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]] = rotImage[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]]
-        rgbWBR[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]] = rotImage[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]]
-        rgbWBR[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]] = rotImage[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]]
-        hsvWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2HSV)
-        maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
-        
-        if np.sum(maskWBR)>0:
-            RGBGreyWBR=cv2.mean(rgbWBR, mask=maskWBR)
-            bscale=RGBGreyWBR[0]
-            gscale=RGBGreyWBR[1]
-            rscale=RGBGreyWBR[2]
-            scalemax=max(rscale,gscale,bscale)
-            if dictSet['WBR sc'][0]!=0:
-                scalemin=dictSet['WBR sc'][0]
-            else:
-                scalemin=min(rscale,gscale,bscale)
-            if (scalemin!=0) & (min(rscale,gscale,bscale)!=0):
-                rfactor=float(scalemin)/float(rscale)
-                gfactor=float(scalemin)/float(gscale)
-                bfactor=float(scalemin)/float(bscale)
-            rotImage=ip.OpenCVRebalanceImage(rotImage,rfactor,gfactor,bfactor)
-            frame=ip.OpenCVRebalanceImage(frame,rfactor,gfactor,bfactor)
-
-        rgbWBR[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]] = rotImage[dictSet['WB1 xy'][1]:dictSet['WB1 xy'][1]+dictSet['WB1 wh'][1], dictSet['WB1 xy'][0]:dictSet['WB1 xy'][0]+dictSet['WB1 wh'][0]]
-        rgbWBR[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]] = rotImage[dictSet['WB2 xy'][1]:dictSet['WB2 xy'][1]+dictSet['WB2 wh'][1], dictSet['WB2 xy'][0]:dictSet['WB2 xy'][0]+dictSet['WB2 wh'][0]]
-        rgbWBR[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]] = rotImage[dictSet['WB3 xy'][1]:dictSet['WB3 xy'][1]+dictSet['WB3 wh'][1], dictSet['WB3 xy'][0]:dictSet['WB3 xy'][0]+dictSet['WB3 wh'][0]]
+        rgbWBR,rotImage,frame=WhiteBalanceFrame(rotImage,frame,dictSet)
         hsvWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2HSV)
         maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
         for row, displayColor, channel in zip([0,1,2], [(0, 0, 128),(0, 128, 0),(128, 25, 25)], [2,1,0]):              
