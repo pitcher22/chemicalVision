@@ -11,6 +11,7 @@ import sys
 import os
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 #requires: pip install opencv-python
 import cv2
@@ -94,16 +95,7 @@ elif versionOS=='M':
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
 font = cv2.FONT_HERSHEY_SIMPLEX
-    
-runMode = input("Are you downloading from an email? (Y/n): ")
-if (runMode == "y")|(runMode == "Y"):
-    FROM_EMAIL = input("Please enter your email address: ")
-    FROM_PWD = input("Please enter your password: ")
-    localFlag=False
-else:
-    video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('settings files', '.MOV'),('all files', '.*')])
-    localFlag=True
-    
+  
 SMTP_SERVER = "imap.gmail.com"
 SMTP_PORT   = 993
 
@@ -140,30 +132,41 @@ for chan in range(256):
         linLUTabs[chan]=255/64.0
     else:
         linLUTabs[chan]=-np.log10(val)
-        
-useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
-#read a limits file as well here to set upperLimitString
-if (useFile=="f") | (useFile=="F"):
-    #include option of reading a default file on error
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes('-topmost', 1)
-    settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
-    settingsFile = open(settings_file_path,'r')
+
+fileMode = input("Refresh Files? (Y/n): ")
+if (fileMode == "y")|(fileMode == "Y"):
+    runMode = input("Are you downloading from an email? (Y/n): ")
+    if (runMode == "y")|(runMode == "Y"):
+        FROM_EMAIL = input("Please enter your email address: ")
+        FROM_PWD = input("Please enter your password: ")
+        localFlag=False
+    else:
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes('-topmost', 1)
+        video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('video files', '.MOV'),('all files', '.*')])
+        localFlag=True
+            
+    useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
+    #read a limits file as well here to set upperLimitString
+    if (useFile=="f") | (useFile=="F"):
+        #include option of reading a default file on error
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes('-topmost', 1)
+        settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
+        settingsFile = open(settings_file_path,'r')
+        settingString=settingsFile.read()
+        settingsFile.close()
+        dictSet=eval(settingString)
+        print(dictSet)
+        ActiveState="Process"
+    else:
+        settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
+        settingString=settingsFile.read()
+        settingsFile.close()
+        dictSet=eval(settingString)
+    settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
     settingString=settingsFile.read()
     settingsFile.close()
-    dictSet=eval(settingString)
-    print(dictSet)
-    ActiveState="Process"
-else:
-    settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
-    settingString=settingsFile.read()
-    settingsFile.close()
-    dictSet=eval(settingString)
-settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
-settingString=settingsFile.read()
-settingsFile.close()
-dictUL=eval(settingString)
-
-
-
+    dictUL=eval(settingString)
