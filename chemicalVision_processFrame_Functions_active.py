@@ -107,14 +107,14 @@ if dayLightSavings:
 else:
     greenwichTimeAdjustment = 8
     
-referenceFlag=True
-settingsFlag=False    
-RecordFlag=True
-overlayFlag=True
-displayHelp=True
-cmPerPixel=2.54/300
+# referenceFlag=True
+# settingsFlag=False    
+# RecordFlag=True
+# overlayFlag=True
+# displayHelp=True
+# cmPerPixel=2.54/300
 
-ActiveState="Process"
+#ActiveState="Process"
 
 linLUTfloat=np.zeros((256),dtype='float32')
 linLUTint=np.zeros((256),dtype='uint8')
@@ -159,7 +159,7 @@ if (fileMode == "y")|(fileMode == "Y"):
         settingsFile.close()
         dictSet=eval(settingString)
         print(dictSet)
-        ActiveState="Process"
+        #ActiveState="Process"
     else:
         settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
         settingString=settingsFile.read()
@@ -252,14 +252,22 @@ def RegisterImage(frame,frameForDrawing,dictSet):
             ptsImage[2,1]=ptsFound[3,1]
         Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
         rotImage = cv2.warpPerspective(frame,Mrot,(2600,900))
-        return(rotImage)
+        return(rotImage,frameForDrawing)
     else:
-        return(np.array([0]))
+        return(np.array([0]),frameForDrawing)
 
-def WhiteBalanceFrame(rotImage,frame,dictSet,wbList=["WB1"]):
+def WhiteBalanceFrame(displayFrame,rotImage,frame,frameForDrawing,dictSet,wbList=["WB1"]):
     rgbWBR=np.zeros((rotImage.shape),dtype='uint8')
     for wbRegion in wbList:
         rgbWBR[dictSet[wbRegion+' xy'][1]:dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1], dictSet[wbRegion+' xy'][0]:dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0]] = rotImage[dictSet[wbRegion+' xy'][1]:dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1], dictSet[wbRegion+' xy'][0]:dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0]]
+        cv2.rectangle(frameForDrawing,(dictSet[wbRegion+' xy'][0],dictSet[wbRegion+' xy'][1]),(dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0],dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1]),(0,0,255) )
+        if dictSet[wbRegion+' hs'][2]!=0:
+            valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,wbRegion,dictSet,connectedOnly=False,histogramHeight=dictSet['dsp wh'][1])
+            displayFrame=OpenCVComposite(histogramImage, displayFrame, dictSet[wbRegion+' hs'])
+        else:
+            valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,wbRegion,dictSet,connectedOnly=False)                
+        if dictSet[wbRegion+' ds'][2]!=0:
+            displayFrame=OpenCVComposite(resRGB, displayFrame, dictSet[wbRegion+' ds'])
     hsvWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2HSV)
     maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
     if np.sum(maskWBR)>0:
@@ -279,7 +287,7 @@ def WhiteBalanceFrame(rotImage,frame,dictSet,wbList=["WB1"]):
         rgbWBR = cv2.bitwise_and(rgbWBR,rgbWBR, mask= maskWBR)
         rotImage=ip.OpenCVRebalanceImage(rotImage,rfactor,gfactor,bfactor)
         frame=ip.OpenCVRebalanceImage(frame,rfactor,gfactor,bfactor)
-    return(rgbWBR,rotImage,frame)
+    return(rgbWBR,rotImage,frame,frameForDrawing)
 
 def OpenCVComposite(sourceImage, targetImage,settingsWHS):
     if settingsWHS[2]!=100:
@@ -287,8 +295,23 @@ def OpenCVComposite(sourceImage, targetImage,settingsWHS):
         imageScaled = cv2.resize(sourceImage, (int(sourceImage.shape[1]*scaleFactor),int(sourceImage.shape[0]*scaleFactor)), interpolation = cv2.INTER_AREA)
     else:
         imageScaled=sourceImage
-    #needs index checking here so imageScaled fits inside targetImage
-    targetImage[int(targetImage.shape[0]*settingsWHS[1]/100):int((targetImage.shape[0]*settingsWHS[1]/100)+imageScaled.shape[0]),int(targetImage.shape[1]*settingsWHS[0]/100):int((targetImage.shape[1]*settingsWHS[0]/100)+imageScaled.shape[1]),:]=imageScaled
+    xTargetStart=int(targetImage.shape[0]*settingsWHS[1]/100)
+    xTargetEnd=int((targetImage.shape[0]*settingsWHS[1]/100)+imageScaled.shape[0])
+    yTargetStart=int(targetImage.shape[1]*settingsWHS[0]/100)
+    yTargetEnd=int((targetImage.shape[1]*settingsWHS[0]/100)+imageScaled.shape[1])
+    if xTargetEnd>targetImage.shape[0]:
+        xTargetEnd=targetImage.shape[0]
+        xSourceEnd=targetImage.shape[0]-int(targetImage.shape[0]*settingsWHS[1]/100)
+    else:
+        xSourceEnd=imageScaled.shape[0]
+    
+    if yTargetEnd>targetImage.shape[1]:
+        yTargetEnd=targetImage.shape[1]
+        ySourceEnd=targetImage.shape[1]-int(targetImage.shape[1]*settingsWHS[0]/100)
+    else:
+        ySourceEnd=imageScaled.shape[1]    
+    targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,:]=imageScaled[0:xSourceEnd,0:ySourceEnd,:]
+    #targetImage[int(targetImage.shape[0]*settingsWHS[1]/100):int((targetImage.shape[0]*settingsWHS[1]/100)+imageScaled.shape[0]),int(targetImage.shape[1]*settingsWHS[0]/100):int((targetImage.shape[1]*settingsWHS[0]/100)+imageScaled.shape[1]),:]=imageScaled
     return targetImage
 
 def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
@@ -355,11 +378,10 @@ def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=
     else:
         return(allROIsummary[0,:,0],allROIsummary[1,:,0],resMask,resFrameROI,contourArea,boundingRectangle,False)
         
-def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
+def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
     frameStats=np.zeros((16,6,len(roiList)))    
-    img=np.copy(frame)
     if dictSet['flg rf'][0]:
-        rotImage = RegisterImage(frame,img,dictSet)
+        rotImage,frameForDrawing = RegisterImage(frame,frameForDrawing,dictSet)
         skipFrame=False
         if rotImage.size==1:
             skipFrame=True
@@ -369,11 +391,11 @@ def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
         skipFrame=False
     if skipFrame==False:
         if dictSet['flg wb'][0]==1:
-            rgbWBR,rotImage,frame=WhiteBalanceFrame(rotImage,frame,dictSet,wbList=wbList)
+            rgbWBR,rotImage,frame,frameForDrawing=WhiteBalanceFrame(displayFrame,rotImage,frame,frameForDrawing,dictSet,wbList=wbList)
             if dictSet['flg di'][0]==1:
                 cv2.imshow("WBR",rgbWBR)
-            if dictSet['WBR ds'][2]!=0:
-                displayFrame=OpenCVComposite(rgbWBR, displayFrame, dictSet['WBR ds'])
+            #if dictSet['WBR ds'][2]!=0:
+            #    displayFrame=OpenCVComposite(rgbWBR, displayFrame, dictSet['WBR ds'])
             #hsvWBR = cv2.cvtColor(rgbWBR, cv2.COLOR_BGR2HSV)
             #maskWBR = cv2.inRange(hsvWBR, np.array(dictSet['WBR ll']), np.array(dictSet['WBR ul']))
             #rgbWBRsummary=cv2.meanStdDev(rgbWBR,mask=maskWBR)
@@ -385,7 +407,11 @@ def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
                 valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=dictSet[roiSetName+' ct'][0],histogramHeight=dictSet['dsp wh'][1])
                 displayFrame=OpenCVComposite(histogramImage, displayFrame, dictSet[roiSetName+' hs'])
             else:
-                valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=dictSet[roiSetName+' ct'][0])                
+                valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=dictSet[roiSetName+' ct'][0])
+            
+            cv2.rectangle(frameForDrawing,(dictSet[roiSetName+' xy'][0],dictSet[roiSetName+' xy'][1]),(dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0],dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1]),(0,255,0) )
+
+            
             frameStats[0:12,0,roiNumber]=valSummary
             frameStats[0:12,1,roiNumber]=stdSummary
             area=cv2.countNonZero(resMask)
@@ -398,7 +424,7 @@ def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
                 cv2.imshow(roiSetName,resRGB)
             if dictSet[roiSetName+' ds'][2]!=0:
                 displayFrame=OpenCVComposite(resRGB, displayFrame, dictSet[roiSetName+' ds'])
-    return frameStats,displayFrame,frame,rotImage
+    return frameStats,displayFrame,frame,frameForDrawing,rotImage
 
 def ToggleFlag(flagName,dictSet):
     if dictSet[flagName][0]==1:
@@ -446,7 +472,7 @@ def CheckKeys(dictSet):
             hLimit=255
             lLimit=0
         else:
-            hLimit=4000
+            hLimit=7000
             lLimit=0
         if (keypress==ord('+')) & (dictSet[sorted(dictSet)[row]][col]<hLimit):
             dictSet[sorted(dictSet)[row]][col]=dictSet[sorted(dictSet)[row]][col]+1
@@ -504,10 +530,27 @@ def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
             ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(dictSet[axis+' cl'][0],dictSet[axis+' cl'][1],dictSet[axis+' cl'][2]),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
             displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame
-    
-cap = cv2.VideoCapture(video_file_path)
-totalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+if len(video_file_path)!=0:
+    cap = cv2.VideoCapture(video_file_path)
+    totalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+else:
+    cap = cv2.VideoCapture(0)
+    ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
+    ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
+    ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+    ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+    ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+    ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+    ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+    ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+    ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+    ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+    ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+    totalFrames=10000
+
 parameterStats=np.zeros((32,6,totalFrames,6))
+    
 #ParameterStats Map
 #1st dimension 0 to 14: labels=["R","G","B","H","S","V","L","a","b","Ra","Ga","Ba","Ga-Ra","Ba-Ra","Ga-Ba"]
 #1st dimension 15 to 17: labels=["RO1area","RO1BoundingRecHeight","RO1BoundingRecWidth"
@@ -554,8 +597,9 @@ while frameNumber<=totalFrames:
         if (setting[0:2]=="WB") & (setting[4:6]=="wh"):
             if (dictSet[setting][0]!=0) & (dictSet[setting][1]!=0):
                 wbList.append(setting[0:3])
-                
-    frameStats,displayFrame,frame,rotImage = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
+
+    frameForDrawing=np.copy(frame)
+    frameStats,displayFrame,frame,frameForDrawing,rotImage = ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=wbList,roiList=roiList)
 
     parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
     parameterStats[31,0,frameNumber,:]=1
@@ -573,6 +617,9 @@ while frameNumber<=totalFrames:
 
     if dictSet['REG ds'][2]!=0:
         displayFrame=OpenCVComposite(rotImage, displayFrame,dictSet['REG ds'])
+
+    if dictSet['FMK ds'][2]!=0:
+        displayFrame=OpenCVComposite(frameForDrawing, displayFrame,dictSet['FMK ds'])
         
     if dictSet['flg ds'][0]==1:
         settingsFrame = np.zeros((820, 150, 3), np.uint8)
@@ -588,13 +635,15 @@ while frameNumber<=totalFrames:
     if changeCameraFlag:
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0]/255.0)
-        #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1]/255.0)
-        #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2]/255.0)
-        #ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0]/2.0+0.25)
-        #ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1]/255.0)
-        #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1]/255.0)
+        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     if frameJump!=0:
         if np.abs(frameJump)==1:
             frameNumber=frameNumber+frameJump

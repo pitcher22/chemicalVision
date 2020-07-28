@@ -36,10 +36,11 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
     avgVal=cv2.meanStdDev(image,mask=mask)
     histdata = cv2.calcHist([image],[channel],mask,[NumBins],[DataMin,DataMax])
     domValue=np.argmax(histdata)
-    if np.sum(histdata)>0:
-        domCount=np.max(histdata)/np.sum(histdata) 
-    else:
-        domCount=0
+    pixelCount=np.sum(histdata) 
+    # if pixelCount>0:
+    #     domCount=np.max(histdata)/pixelCount
+    # else:
+    #     domCount=0
     #sortArg=np.argsort(histdata,axis=0)
     #domValue=np.sum(histdata[sortArg[-5:][:,0]][:,0]*sortArg[-5:][:,0])/np.sum(histdata[sortArg[-5:][:,0]][:,0])
     #domCount=np.sum(histdata[sortArg[-5:][:,0]][:,0])/np.sum(histdata)
@@ -54,7 +55,7 @@ def OpenCVDisplayedHistogram(image,channel,mask,NumBins,DataMin,DataMax,x,y,w,h,
         freq = int(histdata[i])
         cv2.rectangle(DisplayImage, ((i*binWidth)+x, y+h), (((i+1)*binWidth)+x, y+h-freq), color)
     if labelFlag:
-        cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" p="+'{0:.2f}'.format(domCount)+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
+        cv2.putText(DisplayImage,labelText+" m="+'{0:.2f}'.format(domValue/float(NumBins-1)*(DataMax-DataMin))+" n="+'{:4d}'.format(int(pixelCount))+" a="+'{0:.2f}'.format(avgVal[0][channel][0])+" s="+'{0:.2f}'.format(avgVal[1][channel][0]),(x,y+h+12), font, 0.4,color,1,cv2.LINE_AA)
     return (avgVal[0][channel][0],avgVal[1][channel][0],domValue/float(NumBins-1)*(DataMax-DataMin))
         
 def OpenCVDisplayedScatter(img, xdata,ydata,x,y,w,h,color, circleThickness,ydataRangemin=None, ydataRangemax=None,xdataRangemin=None, xdataRangemax=None, lMargin=11, rMargin=4, tMargin=2,bMargin=4,alpha=1,labelFlag=True):      
