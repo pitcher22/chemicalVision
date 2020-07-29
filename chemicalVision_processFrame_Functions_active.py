@@ -70,8 +70,9 @@ if versionOS=='W':
     filePathEmail=os.getcwd()+'\\EmailedVideo'
     filePathSettings=os.getcwd()+'\\Settings'
     osSep='\\'
-    fourcc = cv2.VideoWriter_fourcc(*'MP42')
-    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    #fourcc = cv2.VideoWriter_fourcc(*'MP42')
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc(*'H264')
     #fourcc = cv2.VideoWriter_fourcc(*'X264')
 elif versionOS=='L':
@@ -145,7 +146,6 @@ if (fileMode == "y")|(fileMode == "Y"):
         root.wm_attributes('-topmost', 1)
         video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('video files', '.mp4'),('all files', '.*')])
         localFlag=True
-            
     useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
     #read a limits file as well here to set upperLimitString
     if (useFile=="f") | (useFile=="F"):
@@ -169,7 +169,6 @@ if (fileMode == "y")|(fileMode == "Y"):
     settingString=settingsFile.read()
     settingsFile.close()
     dictUL=eval(settingString)
-
 
 def FindLargestContour(mask):
     if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
@@ -473,7 +472,7 @@ def CheckKeys(dictSet):
             lLimit=0
         else:
             hLimit=7000
-            lLimit=0
+            lLimit=-100
         if (keypress==ord('+')) & (dictSet[sorted(dictSet)[row]][col]<hLimit):
             dictSet[sorted(dictSet)[row]][col]=dictSet[sorted(dictSet)[row]][col]+1
             if sorted(dictSet)[row].find('CAM')==0:
@@ -534,8 +533,16 @@ def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
 if len(video_file_path)!=0:
     cap = cv2.VideoCapture(video_file_path)
     totalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    liveFlag=False
+    outFileName=video_file_path+'Processed.mp4'
 else:
-    cap = cv2.VideoCapture(0)
+    liveFlag=True
+    outFileName=os.getcwd()+'\\Processed.avi'
+    #outFileName=os.getcwd()+'\\'+time.ctime()+'_Processed.avi'
+    cap = cv2.VideoCapture(1)
+    if dictSet['CM2 en'][0]!=0:
+        cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0]))
+    #cap = cv2.VideoCapture(0)
     ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
     ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
     ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
@@ -547,7 +554,7 @@ else:
     ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
     ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
     ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
-    totalFrames=10000
+    totalFrames=100000
 
 parameterStats=np.zeros((32,6,totalFrames,6))
     
@@ -560,12 +567,19 @@ parameterStats=np.zeros((32,6,totalFrames,6))
 #4th dimension 0 to 4: labels=["WBR","RO1","RO2","RO3"]
 frameNumber=0
 
-if totalFrames>1:
+if totalFrames!=1:
     videoFlag=True
+    if liveFlag:
+        frameRate=cap.get(cv2.CAP_PROP_FPS)
+    else:
+        frameRate=20
+        
 else:
     videoFlag=False
     frameRate=0
     ret, originalFrame = cap.read() 
+
+outp = cv2.VideoWriter(outFileName,fourcc, frameRate, (dictSet['dsp wh'][0], dictSet['dsp wh'][1]))
     
 while frameNumber<=totalFrames:
 #for frameNumber in range(totalFrames):
@@ -573,6 +587,10 @@ while frameNumber<=totalFrames:
         cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
         frameRate=cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read() 
+        if dictSet['CM2 en'][0]!=0:
+            ret2, frame2 = cap2.read() 
+            if ret2==False:
+                break
         if ret==False:
             break
     else:
@@ -587,6 +605,10 @@ while frameNumber<=totalFrames:
     if dictSet['PRE ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PRE ds'])
 
+    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0):
+        frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
+        displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
+        
     roiList=[]
     for setRow,setting in zip(range(len(dictSet)),sorted(dictSet)):
         if (setting[0:2]=="RO") & (setting[4:6]=="wh"):
@@ -608,7 +630,7 @@ while frameNumber<=totalFrames:
     if frameRate!=0:
         parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
     else:
-        parameterStats[28,0,frameNumber,:]=0
+        parameterStats[28,0,frameNumber,:]=time.time()
     
     displayFrame=MakePlots(parameterStats,dictSet,displayFrame)
     
@@ -629,6 +651,10 @@ while frameNumber<=totalFrames:
     ip.OpenCVPutText(displayFrame,str(frameNumber),(2,displayHeight-8),(255,255,255))
     
     cv2.imshow('Display', displayFrame)
+
+    if (dictSet['flg rn'][0]==1) & (dictSet['flg rc'][0]==1):
+        outp.write(displayFrame)
+
     dictSet,continueFlag,changeCameraFlag,frameJump=CheckKeys(dictSet)
     if continueFlag==False:
         break
@@ -644,7 +670,7 @@ while frameNumber<=totalFrames:
         ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
         ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
         ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
-    if frameJump!=0:
+    if (frameJump!=0) & (liveFlag==False):
         if np.abs(frameJump)==1:
             frameNumber=frameNumber+frameJump
         else:
@@ -653,13 +679,19 @@ while frameNumber<=totalFrames:
             frameNumber=totalFrames+1
         if frameNumber<0:
             frameNumber=0
-    else:
+    elif liveFlag==False:
         if dictSet['flg rn'][0]==1:
             frameNumber=frameNumber+dictSet['set fr'][0]
+    else:
+        if dictSet['flg rn'][0]==1:
+            frameNumber=frameNumber+1
             
 cap.release()
+outp.release()
+if dictSet['CM2 en'][0]!=0:
+    cap2.release()
 cv2.destroyAllWindows()
-
+    
 saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
