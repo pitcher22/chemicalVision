@@ -259,7 +259,7 @@ def WhiteBalanceFrame(displayFrame,rotImage,frame,frameForDrawing,dictSet,wbList
     rgbWBR=np.zeros((rotImage.shape),dtype='uint8')
     for wbRegion in wbList:
         rgbWBR[dictSet[wbRegion+' xy'][1]:dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1], dictSet[wbRegion+' xy'][0]:dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0]] = rotImage[dictSet[wbRegion+' xy'][1]:dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1], dictSet[wbRegion+' xy'][0]:dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0]]
-        cv2.rectangle(frameForDrawing,(dictSet[wbRegion+' xy'][0],dictSet[wbRegion+' xy'][1]),(dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0],dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1]),(0,0,255) )
+        cv2.rectangle(frameForDrawing,(dictSet[wbRegion+' xy'][0],dictSet[wbRegion+' xy'][1]),(dictSet[wbRegion+' xy'][0]+dictSet[wbRegion+' wh'][0],dictSet[wbRegion+' xy'][1]+dictSet[wbRegion+' wh'][1]),(0,0,255),10 )
         if dictSet[wbRegion+' hs'][2]!=0:
             valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,wbRegion,dictSet,connectedOnly=False,histogramHeight=dictSet['dsp wh'][1])
             displayFrame=OpenCVComposite(histogramImage, displayFrame, dictSet[wbRegion+' hs'])
@@ -308,9 +308,13 @@ def OpenCVComposite(sourceImage, targetImage,settingsWHS):
         yTargetEnd=targetImage.shape[1]
         ySourceEnd=targetImage.shape[1]-int(targetImage.shape[1]*settingsWHS[0]/100)
     else:
-        ySourceEnd=imageScaled.shape[1]    
-    targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,:]=imageScaled[0:xSourceEnd,0:ySourceEnd,:]
-    #targetImage[int(targetImage.shape[0]*settingsWHS[1]/100):int((targetImage.shape[0]*settingsWHS[1]/100)+imageScaled.shape[0]),int(targetImage.shape[1]*settingsWHS[0]/100):int((targetImage.shape[1]*settingsWHS[0]/100)+imageScaled.shape[1]),:]=imageScaled
+        ySourceEnd=imageScaled.shape[1]
+    if len(imageScaled.shape)==3:
+        targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,:]=imageScaled[0:xSourceEnd,0:ySourceEnd,:]
+    else:
+        targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,0]=imageScaled[0:xSourceEnd,0:ySourceEnd]
+        targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,1]=imageScaled[0:xSourceEnd,0:ySourceEnd]
+        targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,2]=imageScaled[0:xSourceEnd,0:ySourceEnd]
     return targetImage
 
 def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
@@ -408,7 +412,7 @@ def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],ro
             else:
                 valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=dictSet[roiSetName+' ct'][0])
             
-            cv2.rectangle(frameForDrawing,(dictSet[roiSetName+' xy'][0],dictSet[roiSetName+' xy'][1]),(dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0],dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1]),(0,255,0) )
+            cv2.rectangle(frameForDrawing,(dictSet[roiSetName+' xy'][0],dictSet[roiSetName+' xy'][1]),(dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0],dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1]),(0,255,0),10 )
 
             
             frameStats[0:12,0,roiNumber]=valSummary
@@ -530,6 +534,37 @@ def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
             displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame
 
+def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
+    dfCollected=(parameterStats[31,0,:,0]==1) & (parameterStats[12,0,:,0]!=0)
+    dfMean=pd.DataFrame(data=parameterStats[0:12,0,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
+    dfStdev=pd.DataFrame(data=parameterStats[0:12,1,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
+    dfMost=pd.DataFrame(data=parameterStats[0:12,2,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
+    writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
+    workbook  = writer.book
+    dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=8,index=False)
+    dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=21,index=False)
+    dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=34,index=False)
+    worksheetData = writer.sheets['FrameData']
+    worksheetData.write('I1', 'Means')
+    worksheetData.write('V1', 'Standard Deviations')
+    worksheetData.write('AI1', 'Most Frequent Values')
+    worksheetData.write('A2', 'FrameNumber')
+    worksheetData.write('B2', 'FrameRate')
+    worksheetData.write('C2', 'Time')
+    worksheetData.write('D2', 'Area')
+    worksheetData.write('E2', 'Height')
+    worksheetData.write('F2', 'Width')
+    worksheetData.write('G2', 'ContourArea')
+    worksheetData.write_column('A3', parameterStats[30,0,dfCollected,roiNumber])
+    worksheetData.write_column('B3', parameterStats[29,0,dfCollected,roiNumber])
+    worksheetData.write_column('C3', parameterStats[28,0,dfCollected,roiNumber])
+    worksheetData.write_column('D3', parameterStats[12,0,dfCollected,roiNumber])
+    worksheetData.write_column('E3', parameterStats[13,0,dfCollected,roiNumber])
+    worksheetData.write_column('F3', parameterStats[14,0,dfCollected,roiNumber])
+    worksheetData.write_column('G3', parameterStats[15,0,dfCollected,roiNumber])
+    workbook.close()
+    writer.save()
+
 if len(video_file_path)!=0:
     cap = cv2.VideoCapture(video_file_path)
     totalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -539,9 +574,11 @@ else:
     liveFlag=True
     outFileName=os.getcwd()+'\\Processed.avi'
     #outFileName=os.getcwd()+'\\'+time.ctime()+'_Processed.avi'
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
     if dictSet['CM2 en'][0]!=0:
         cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0]))
+    if dictSet['CM3 en'][0]!=0:
+        cap3 = cv2.VideoCapture(int(dictSet['CM3 en'][0]))
     #cap = cv2.VideoCapture(0)
     ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
     ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
@@ -587,9 +624,13 @@ while frameNumber<=totalFrames:
         cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
         frameRate=cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read() 
-        if dictSet['CM2 en'][0]!=0:
+        if (dictSet['CM2 en'][0]!=0) and (liveFlag):
             ret2, frame2 = cap2.read() 
             if ret2==False:
+                break
+        if (dictSet['CM3 en'][0]!=0) and (liveFlag):
+            ret3, frame3 = cap3.read() 
+            if ret3==False:
                 break
         if ret==False:
             break
@@ -605,10 +646,14 @@ while frameNumber<=totalFrames:
     if dictSet['PRE ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PRE ds'])
 
-    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0):
+    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0) and (liveFlag):
         frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
         
+    if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=0) and (liveFlag):
+        frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
+        displayFrame=OpenCVComposite(frameCrop3, displayFrame,dictSet['CM3 ds'])
+
     roiList=[]
     for setRow,setting in zip(range(len(dictSet)),sorted(dictSet)):
         if (setting[0:2]=="RO") & (setting[4:6]=="wh"):
@@ -627,10 +672,11 @@ while frameNumber<=totalFrames:
     parameterStats[31,0,frameNumber,:]=1
     parameterStats[30,0,frameNumber,:]=frameNumber
     parameterStats[29,0,frameNumber,:]=frameRate
-    if frameRate!=0:
-        parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
-    else:
+    if liveFlag:
         parameterStats[28,0,frameNumber,:]=time.time()
+    else:
+        parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
+        
     
     displayFrame=MakePlots(parameterStats,dictSet,displayFrame)
     
@@ -688,8 +734,10 @@ while frameNumber<=totalFrames:
             
 cap.release()
 outp.release()
-if dictSet['CM2 en'][0]!=0:
+if (dictSet['CM2 en'][0]!=0) and (liveFlag):
     cap2.release()
+if (dictSet['CM3 en'][0]!=0) and (liveFlag):
+    cap3.release()
 cv2.destroyAllWindows()
     
 saveSettings = input("Save current settings (Y/n)?")
