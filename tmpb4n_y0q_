@@ -682,7 +682,7 @@ while frameNumber<=totalFrames:
     ptsFound[1,:] = approx[order[1],:]
     ptsFound[2,:] = approx[order[2],:]
     ptsFound[3,:] = approx[order[3],:]
-    orientation=dictSet['brt or'][0]
+    orientation=2
     ptsCard = np.float32([[dictSet['bl1 xy'][0],dictSet['bl1 xy'][1]],[dictSet['bl2 xy'][0],dictSet['bl2 xy'][1]],[dictSet['bl3 xy'][0],dictSet['bl3 xy'][1]],[dictSet['bl4 xy'][0],dictSet['bl4 xy'][1]]])
     ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
     if ptsFound.shape[0]==4:
@@ -846,11 +846,11 @@ while frameNumber<=totalFrames:
             frameNumber=totalFrames+1
         if frameNumber<0:
             frameNumber=0
-    elif liveFlag==False and videoFlag:
+    elif liveFlag==False:
         if dictSet['flg rn'][0]==1:
             frameNumber=frameNumber+dictSet['set fr'][0]
-    elif liveFlag==True:
-        if (dictSet['flg rn'][0]==1):
+    else:
+        if dictSet['flg rn'][0]==1:
             frameNumber=frameNumber+1
             
 cap.release()
