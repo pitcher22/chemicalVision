@@ -393,11 +393,10 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
     return displayFrame
 
 def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=0):
-    #connectedOnly doesn't seem to work
     rgbROI = rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]]
     if rgbROI.size==0:
         #return(allROIsummary[0,:,0],allROIsummary[1,:,0],resMask,resFrameROI,contourArea,boundingRectangle,False)
-        return(np.array([]),np.array([]),np.array([]),np.array([]),np.array([]),np.array([]),np.array([]))
+        return(0,0,0,0,0,0,0)
     hsvROI = cv2.cvtColor(rgbROI, cv2.COLOR_BGR2HSV)
     hsvROI[:,:,0]=ip.ShiftHOriginToValue(hsvROI[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
     labROI = cv2.cvtColor(rgbROI, cv2.COLOR_BGR2LAB)
