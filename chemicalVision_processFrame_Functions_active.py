@@ -189,7 +189,7 @@ def FindLargestContour(mask):
         boundingRectangle=cv2.minAreaRect(largestContour)
         return(largestContour,maxArea,boundingRectangle)
     else:
-        return(False,0,False)  
+        return(np.array([]),0,False)  
 
 def FindContoursInside(mask,boundingContour,areaMin,areaMax,drawColor,frameForDrawing):
     ptsFound=np.zeros((40,4),dtype='float32')
@@ -220,48 +220,51 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     boxMask = cv2.inRange(hsvFrame, np.array(dictSet['bcr ll']), np.array(dictSet['bcr ul'])) 
     outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(boxMask)
-    cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
-    epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
-    approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
-    approx=approx[:,0,:]
-    if approx.shape[0]!=4:
-        approx = cv2.boxPoints(boxBoundingRectangle)
-    distances=np.zeros(4)
-    distances[1]= np.linalg.norm(approx[0,:]-approx[1,:])
-    distances[2]= np.linalg.norm(approx[0,:]-approx[2,:])
-    distances[3]= np.linalg.norm(approx[0,:]-approx[3,:])
-    order=np.argsort(distances)
-    ptsFound=np.copy(approx)
-    ptsFound[0,:] = approx[order[0],:]
-    ptsFound[1,:] = approx[order[1],:]
-    ptsFound[2,:] = approx[order[2],:]
-    ptsFound[3,:] = approx[order[3],:]
-    orientation=dictSet['brt or'][0]
-    #these can likely be switched to the settings cl1, etc
-    ptsCard = np.float32([[dictSet['bl1 xy'][0],dictSet['bl1 xy'][1]],[dictSet['bl2 xy'][0],dictSet['bl2 xy'][1]],[dictSet['bl3 xy'][0],dictSet['bl3 xy'][1]],[dictSet['bl4 xy'][0],dictSet['bl4 xy'][1]]])
-    ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
-    if ptsFound.shape[0]==4:
-        if orientation==1:
-            ptsImage[0,0]=ptsFound[0,0]
-            ptsImage[0,1]=ptsFound[0,1]
-            ptsImage[1,0]=ptsFound[1,0]
-            ptsImage[1,1]=ptsFound[1,1]
-            ptsImage[2,0]=ptsFound[2,0]
-            ptsImage[2,1]=ptsFound[2,1]
-            ptsImage[3,0]=ptsFound[3,0]
-            ptsImage[3,1]=ptsFound[3,1]
+    if outerBoxContour.size!=0:
+        cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
+        epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
+        approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
+        approx=approx[:,0,:]
+        if approx.shape[0]!=4:
+            approx = cv2.boxPoints(boxBoundingRectangle)
+        distances=np.zeros(4)
+        distances[1]= np.linalg.norm(approx[0,:]-approx[1,:])
+        distances[2]= np.linalg.norm(approx[0,:]-approx[2,:])
+        distances[3]= np.linalg.norm(approx[0,:]-approx[3,:])
+        order=np.argsort(distances)
+        ptsFound=np.copy(approx)
+        ptsFound[0,:] = approx[order[0],:]
+        ptsFound[1,:] = approx[order[1],:]
+        ptsFound[2,:] = approx[order[2],:]
+        ptsFound[3,:] = approx[order[3],:]
+        orientation=dictSet['brt or'][0]
+        #these can likely be switched to the settings cl1, etc
+        ptsCard = np.float32([[dictSet['bl1 xy'][0],dictSet['bl1 xy'][1]],[dictSet['bl2 xy'][0],dictSet['bl2 xy'][1]],[dictSet['bl3 xy'][0],dictSet['bl3 xy'][1]],[dictSet['bl4 xy'][0],dictSet['bl4 xy'][1]]])
+        ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
+        if ptsFound.shape[0]==4:
+            if orientation==1:
+                ptsImage[0,0]=ptsFound[0,0]
+                ptsImage[0,1]=ptsFound[0,1]
+                ptsImage[1,0]=ptsFound[1,0]
+                ptsImage[1,1]=ptsFound[1,1]
+                ptsImage[2,0]=ptsFound[2,0]
+                ptsImage[2,1]=ptsFound[2,1]
+                ptsImage[3,0]=ptsFound[3,0]
+                ptsImage[3,1]=ptsFound[3,1]
+            else:
+                ptsImage[0,0]=ptsFound[3,0]
+                ptsImage[0,1]=ptsFound[3,1]
+                ptsImage[1,0]=ptsFound[2,0]
+                ptsImage[1,1]=ptsFound[2,1]
+                ptsImage[2,0]=ptsFound[1,0]
+                ptsImage[2,1]=ptsFound[1,1]
+                ptsImage[3,0]=ptsFound[0,0]
+                ptsImage[3,1]=ptsFound[0,1]
+            Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
+            rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][1],dictSet['box wh'][0]))
+            return(rotImage,frameForDrawing)
         else:
-            ptsImage[0,0]=ptsFound[3,0]
-            ptsImage[0,1]=ptsFound[3,1]
-            ptsImage[1,0]=ptsFound[2,0]
-            ptsImage[1,1]=ptsFound[2,1]
-            ptsImage[2,0]=ptsFound[1,0]
-            ptsImage[2,1]=ptsFound[1,1]
-            ptsImage[3,0]=ptsFound[0,0]
-            ptsImage[3,1]=ptsFound[0,1]
-        Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
-        rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][1],dictSet['box wh'][0]))
-        return(rotImage,frameForDrawing)
+            return(np.array([0]),frameForDrawing)
     else:
         return(np.array([0]),frameForDrawing)
     
@@ -437,7 +440,8 @@ def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=
     else:
         return(allROIsummary[0,:,0],allROIsummary[1,:,0],resMask,resFrameROI,contourArea,boundingRectangle,False)
         
-def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
+def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
+    frameForDrawing=np.copy(frame)
     frameStats=np.zeros((16,6,len(roiList)))    
     if dictSet['flg rf'][0]==1:
         rotImage,frameForDrawing = RegisterImageColorCard(frame,frameForDrawing,dictSet)
@@ -455,8 +459,9 @@ def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],ro
         rotImage = np.copy(frame)
         skipFrame=False
     if skipFrame==False:
+        rotForDrawing=np.copy(rotImage)
         if dictSet['flg wb'][0]==1:
-            rgbWBR,rotImage,frame,frameForDrawing=WhiteBalanceFrame(displayFrame,rotImage,frame,frameForDrawing,dictSet,wbList=wbList)
+            rgbWBR,rotImage,frame,rotForDrawing=WhiteBalanceFrame(displayFrame,rotImage,frame,rotForDrawing,dictSet,wbList=wbList)
             if dictSet['flg di'][0]==1:
                 cv2.imshow("WBR",rgbWBR)
             #if dictSet['WBR ds'][2]!=0:
@@ -473,10 +478,7 @@ def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],ro
                 displayFrame=OpenCVComposite(histogramImage, displayFrame, dictSet[roiSetName+' hs'])
             else:
                 valSummary,stdSummary,resMask,resRGB,contourArea,boundingRectangle,histogramImage=SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=dictSet[roiSetName+' ct'][0])
-            
-            cv2.rectangle(frameForDrawing,(dictSet[roiSetName+' xy'][0],dictSet[roiSetName+' xy'][1]),(dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0],dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1]),(0,255,0),10 )
-
-            
+            cv2.rectangle(rotForDrawing,(dictSet[roiSetName+' xy'][0],dictSet[roiSetName+' xy'][1]),(dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0],dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1]),(0,255,0),10 )
             frameStats[0:12,0,roiNumber]=valSummary
             frameStats[0:12,1,roiNumber]=stdSummary
             area=cv2.countNonZero(resMask)
@@ -489,7 +491,12 @@ def ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=["WB1"],ro
                 cv2.imshow(roiSetName,resRGB)
             if dictSet[roiSetName+' ds'][2]!=0:
                 displayFrame=OpenCVComposite(resRGB, displayFrame, dictSet[roiSetName+' ds'])
-    return frameStats,displayFrame,frame,frameForDrawing,rotImage
+            if dictSet[roiSetName+' cs'][2]!=0:
+                #box = cv2.boxPoints(boundingRectangle)
+                x,y,w,h = cv2.boundingRect(resMask)
+                #displayFrame=OpenCVComposite(resRGB[x:x+w,y:y+h,:], displayFrame, dictSet[roiSetName+' cs'])
+                displayFrame=OpenCVComposite(resRGB[y:y+h,x:x+w,:], displayFrame, dictSet[roiSetName+' cs'])
+    return frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing
 
 def ToggleFlag(flagName,dictSet):
     if dictSet[flagName][0]==1:
@@ -574,26 +581,27 @@ def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
     if frameEnd==0:
         frameEnd=parameterStats.shape[2]
     for axis in pltList:
-        xBool=parameterStats[31,0,frameStart:frameEnd,dictSet[axis+' xc'][2]]==1
-        yBool=parameterStats[31,0,frameStart:frameEnd,dictSet[axis+' yc'][2]]==1
-        if (xBool==yBool).all() & (np.sum(xBool)>1):               
-            if dictSet[axis+' xs'][0]==0:
-                xMin=dictSet[axis+' xs'][1]
-                xMax=dictSet[axis+' xs'][2]
-            else:
-                xMin=None
-                xMax=None          
-            if dictSet[axis+' ys'][0]==0:
-                yMin=dictSet[axis+' ys'][1]
-                yMax=dictSet[axis+' ys'][2]
-            else:
-                yMin=None
-                yMax=None
-            xData=parameterStats[dictSet[axis+' xc'][0],dictSet[axis+' xc'][1],xBool,dictSet[axis+' xc'][2]]
-            yData=parameterStats[dictSet[axis+' yc'][0],dictSet[axis+' yc'][1],yBool,dictSet[axis+' yc'][2]]
-            scatterFrame = np.zeros((dictSet[axis+' wh'][1], dictSet[axis+' wh'][0], 3), np.uint8)
-            ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(dictSet[axis+' cl'][0],dictSet[axis+' cl'][1],dictSet[axis+' cl'][2]),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
-            displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
+        if dictSet[axis+' ds'][2]!=0:
+            xBool=parameterStats[31,0,frameStart:frameEnd,dictSet[axis+' xc'][2]]==1
+            yBool=parameterStats[31,0,frameStart:frameEnd,dictSet[axis+' yc'][2]]==1
+            if (xBool==yBool).all() & (np.sum(xBool)>1):               
+                if dictSet[axis+' xs'][0]==0:
+                    xMin=dictSet[axis+' xs'][1]
+                    xMax=dictSet[axis+' xs'][2]
+                else:
+                    xMin=None
+                    xMax=None          
+                if dictSet[axis+' ys'][0]==0:
+                    yMin=dictSet[axis+' ys'][1]
+                    yMax=dictSet[axis+' ys'][2]
+                else:
+                    yMin=None
+                    yMax=None
+                xData=parameterStats[dictSet[axis+' xc'][0],dictSet[axis+' xc'][1],xBool,dictSet[axis+' xc'][2]]
+                yData=parameterStats[dictSet[axis+' yc'][0],dictSet[axis+' yc'][1],yBool,dictSet[axis+' yc'][2]]
+                scatterFrame = np.zeros((dictSet[axis+' wh'][1], dictSet[axis+' wh'][0], 3), np.uint8)
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(dictSet[axis+' cl'][0],dictSet[axis+' cl'][1],dictSet[axis+' cl'][2]),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame
 
 def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
@@ -672,7 +680,6 @@ if totalFrames!=1:
         frameRate=cap.get(cv2.CAP_PROP_FPS)
     else:
         frameRate=20
-        
 else:
     videoFlag=False
     frameRate=0
@@ -727,8 +734,7 @@ while frameNumber<=totalFrames:
             if (dictSet[setting][0]!=0) & (dictSet[setting][1]!=0):
                 wbList.append(setting[0:3])
 
-    frameForDrawing=np.copy(frame)
-    frameStats,displayFrame,frame,frameForDrawing,rotImage = ProcessOneFrame(frame,frameForDrawing,dictSet,displayFrame,wbList=wbList,roiList=roiList)
+    frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
 
     parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
     parameterStats[31,0,frameNumber,:]=1
@@ -741,7 +747,6 @@ while frameNumber<=totalFrames:
     else:
         parameterStats[28,0,frameNumber,:]=0
         
-    
     displayFrame=MakePlots(parameterStats,dictSet,displayFrame)
     
     if dictSet['PST ds'][2]!=0:
@@ -752,6 +757,9 @@ while frameNumber<=totalFrames:
 
     if dictSet['FMK ds'][2]!=0:
         displayFrame=OpenCVComposite(frameForDrawing, displayFrame,dictSet['FMK ds'])
+        
+    if dictSet['RMK ds'][2]!=0:
+        displayFrame=OpenCVComposite(rotForDrawing, displayFrame,dictSet['RMK ds'])
         
     if dictSet['flg ds'][0]==1:
         settingsFrame = np.zeros((1080, 150, 3), np.uint8)
