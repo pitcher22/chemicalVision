@@ -642,162 +642,6 @@ def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
     workbook.close()
     writer.save()
 
-def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
-    massFrame = cv2.GaussianBlur(massFrame,(5,5),0)
-    hsvFrame = cv2.cvtColor(massFrame, cv2.COLOR_BGR2HSV)
-    #dictSet['bal ll']=[0,50,220]
-    #dictSet['bal ul']=[255,255,255]
-    massMask = cv2.inRange(hsvFrame, np.array([dictSet['bal ll']]), np.array(dictSet['bal ul'])) 
-    #cv2.imshow('massMask',massMask)
-    #dictSet['bdm ds']=[0,20,20]
-    decodeFrame=OpenCVComposite(massMask, decodeFrame, dictSet['bdm ds'])
-    
-    outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(massMask)
-    
-    epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
-    approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
-    approx=approx[:,0,:]
-    if approx.shape[0]!=4:
-        approx = cv2.boxPoints(boxBoundingRectangle)
-    
-    distances=np.zeros(4)
-    distances[1]= np.linalg.norm(approx[0,:]-approx[1,:])
-    distances[2]= np.linalg.norm(approx[0,:]-approx[2,:])
-    distances[3]= np.linalg.norm(approx[0,:]-approx[3,:])
-    order=np.argsort(distances)
-    ptsFound=np.copy(approx)
-    ptsFound[0,:] = approx[order[0],:]
-    ptsFound[1,:] = approx[order[1],:]
-    ptsFound[2,:] = approx[order[2],:]
-    ptsFound[3,:] = approx[order[3],:]
-    orientation=dictSet['brt or'][0]
-    ptsCard = np.float32([[dictSet['bl1 xy'][0],dictSet['bl1 xy'][1]],[dictSet['bl2 xy'][0],dictSet['bl2 xy'][1]],[dictSet['bl3 xy'][0],dictSet['bl3 xy'][1]],[dictSet['bl4 xy'][0],dictSet['bl4 xy'][1]]])
-    ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
-    if ptsFound.shape[0]==4:
-        if orientation==1:
-            ptsImage[0,0]=ptsFound[0,0]
-            ptsImage[0,1]=ptsFound[0,1]
-            ptsImage[1,0]=ptsFound[1,0]
-            ptsImage[1,1]=ptsFound[1,1]
-            ptsImage[2,0]=ptsFound[2,0]
-            ptsImage[2,1]=ptsFound[2,1]
-            ptsImage[3,0]=ptsFound[3,0]
-            ptsImage[3,1]=ptsFound[3,1]
-        else:
-            ptsImage[0,0]=ptsFound[3,0]
-            ptsImage[0,1]=ptsFound[3,1]
-            ptsImage[1,0]=ptsFound[2,0]
-            ptsImage[1,1]=ptsFound[2,1]
-            ptsImage[2,0]=ptsFound[1,0]
-            ptsImage[2,1]=ptsFound[1,1]
-            ptsImage[3,0]=ptsFound[0,0]
-            ptsImage[3,1]=ptsFound[0,1]
-        Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
-        rotImage = cv2.warpPerspective(massFrame,Mrot,(300,100))
-    #cv2.imshow('massFrame',massFrame)
-    rotImage = cv2.cvtColor(rotImage, cv2.COLOR_BGR2GRAY)
-    #cv2.imshow('rotImage',rotImage)
-    #dictSet['brt ds']=[0,40,20]
-    decodeFrame=OpenCVComposite(rotImage, decodeFrame,dictSet['brt ds'])
-    
-    digitHeight=86
-    digitWidth=45
-    imageStart=55
-    digits=np.zeros((digitHeight, digitWidth, 5), np.uint8)
-    total=0
-    for digit in range(5): 
-        digits[:,:,digit]=rotImage[10:96,imageStart+(digit*digitWidth):imageStart+((digit+1)*digitWidth)]    
-        #cv2.imshow(str(digit),digits[:,:,digit])
-        digitImage=digits[:,:,digit]
-        #dictSet['bsg ll']=[0]
-        #dictSet['bsg ul']=[150]
-        digitMask = cv2.inRange(digitImage, np.array([dictSet['bsg ll']]), np.array(dictSet['bsg ul']))
-        digitMask=ip.OpenCVRotateBound(digitMask, -2)
-        #boundingRectangle=cv2.minAreaRect(digitMask)
-        x,y,w,h = cv2.boundingRect(digitMask)
-        if (w<5) or (h<5):
-            decode=0
-        elif h>w*3:
-            digitMask=digitMask[y:y+h,x:x+w]
-            #dictSet['bnm ds']=[digit*2+2,50,30]
-            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['bns ds'][0]*digit+dictSet['bnm ds'][0],dictSet['bnm ds'][1],dictSet['bnm ds'][2]])
-            decode=36
-        else:
-            decode=0
-            digitMask=digitMask[y:y+h,x:x+w]
-            #cv2.imshow('MaskDigit'+str(digit),digitMask)
-            dictSet['MDG ds']=[digit*2+2,50,30]
-            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['bns ds'][0]*digit+dictSet['bnm ds'][0],dictSet['bnm ds'][1],dictSet['bnm ds'][2]])
-            dH=digitMask.shape[0]
-            dW=digitMask.shape[1]
-            ttSegment=digitMask[0:int(dH*0.15),int(dW*0.25):dW-int(dW*0.25)]
-            ttOn = cv2.countNonZero(ttSegment)/ttSegment.size
-            if ttOn>0.4:
-                decode=decode+1
-            #cv2.imshow("top",ttSegment)
-            tlSegment=digitMask[0:int(dH*0.45),0:int(dW*0.45)]
-            tlOn = cv2.countNonZero(tlSegment)/tlSegment.size
-            if tlOn>0.4:
-                decode=decode+2
-            #cv2.imshow("top left",tlSegment)
-            trSegment=digitMask[0:int(dH*0.45),dW-int(dW*0.45):dW]
-            trOn = cv2.countNonZero(trSegment)/trSegment.size
-            if trOn>0.4:
-                decode=decode+4
-            #cv2.imshow("top right",trSegment)
-            ccSegment=digitMask[int(dH/2)-int(dH*0.15):int(dH/2)+int(dH*0.15),int(dW*0.25):dW-int(dW*0.25)]
-            ccOn = cv2.countNonZero(ccSegment)/ccSegment.size
-            if ccOn>0.4:
-                decode=decode+8
-            #cv2.imshow("center",ccSegment)
-            blSegment=digitMask[dH-int(dH*0.45):dH,0:int(dW*0.45)]
-            blOn = cv2.countNonZero(blSegment)/blSegment.size
-            if blOn>0.4:
-                decode=decode+16
-            #cv2.imshow("bottom left",blSegment)
-            brSegment=digitMask[dH-int(dH*0.45):dH,dW-int(dW*0.45):dW]
-            brOn = cv2.countNonZero(brSegment)/brSegment.size
-            if brOn>0.4:
-                decode=decode+32
-            #cv2.imshow("bottom right",brSegment)
-            bbSegment=digitMask[dH-int(dH*0.15):dH,int(dW*0.1):dW-int(dW*0.1)]
-            bbOn = cv2.countNonZero(bbSegment)/bbSegment.size
-            if bbOn>0.4:
-                decode=decode+64
-            #cv2.imshow("bottom",bbSegment)
-        if (decode==0) or (decode==119):
-            value=0
-        elif decode==36:
-            value=1
-        elif decode==93:
-            value=2
-        elif decode==109:
-            value=3
-        elif decode==46:
-            value=4
-        elif decode==107:
-            value=5
-        elif decode==123:
-            value=6
-        elif decode==37:
-            value=7
-        elif decode==127:
-            value=8
-        elif decode==111:
-            value=9
-        else:
-            value=-1
-            total=-1
-            print('digit '+str(digit)+' is '+str(bin(decode))+' value '+str(value))
-            cv2.imshow("digitMask",digitMask)
-            break
-        #print('digit '+str(digit)+' is '+str(bin(decode))+' value '+str(value))
-        total=total+10**(2-digit)*value
-    total=round(total,2)
-
-
-
-
 if len(video_file_path)!=0:
     cap = cv2.VideoCapture(video_file_path)
     totalFrames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -882,7 +726,6 @@ while frameNumber<=totalFrames:
     if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0) and (liveFlag):
         frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
-        mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
         
     if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=0) and (liveFlag):
         frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
@@ -942,9 +785,6 @@ while frameNumber<=totalFrames:
     if continueFlag==False:
         break
     if changeCameraFlag and dictSet['CAM en'][1]==1:
-        if dictSet['CAM en'][2]==1:
-            cap.release()
-            cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
         ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
@@ -972,7 +812,7 @@ while frameNumber<=totalFrames:
         if (dictSet['flg rn'][0]==1):
             frameNumber=frameNumber+1
             
-cap.release()
+#cap.release()
 outp.release()
 if (dictSet['CM2 en'][0]!=0) and (liveFlag):
     cap2.release()
