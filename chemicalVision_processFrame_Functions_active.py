@@ -216,6 +216,67 @@ def FindContoursInside(mask,boundingContour,areaMin,areaMax,drawColor,frameForDr
                     cv2.circle(frameForDrawing,(int(cx),int(cy)), 2, drawColor, -1)
     return(ptsFound[0:circleIndex,:])
 
+def RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC2,boxC3,boxC4,boxOR,boxWH):
+    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    boxMask = cv2.inRange(hsvFrame, np.array(boxLL), np.array(boxUL)) 
+    outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(boxMask)
+    if outerBoxContour.size==0:
+        return(np.array([0]),frameForDrawing)
+    if outerBoxContour.size!=0:
+        cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
+        epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
+        approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
+        approx=approx[:,0,:]
+        if approx.shape[0]!=4:
+            approx = cv2.boxPoints(boxBoundingRectangle)
+        position=np.sum(approx,axis=1)
+        order=np.argsort(position)
+        approxSort=np.copy(approx)
+        approx[0,:] = approxSort[order[0],:]
+        approx[1,:] = approxSort[order[1],:]
+        approx[2,:] = approxSort[order[2],:]
+        approx[3,:] = approxSort[order[3],:]
+        distances=np.zeros(4)
+        distances[1]= np.linalg.norm(approx[0,:]-approx[1,:])
+        distances[2]= np.linalg.norm(approx[0,:]-approx[2,:])
+        distances[3]= np.linalg.norm(approx[0,:]-approx[3,:])
+        order=np.argsort(distances)
+        ptsFound=np.copy(approx)
+        ptsFound[0,:] = approx[order[0],:]
+        ptsFound[1,:] = approx[order[1],:]
+        ptsFound[2,:] = approx[order[2],:]
+        ptsFound[3,:] = approx[order[3],:]
+        orientation=boxOR[0]
+        #these can likely be switched to the settings cl1, etc
+        ptsCard = np.float32([[boxC1[0],boxC1[1]],[boxC2[0],boxC2[1]],[boxC3[0],boxC3[1]],[boxC4[0],boxC4[1]]])
+        ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
+        if ptsFound.shape[0]==4:
+            if orientation==1:
+                ptsImage[0,0]=ptsFound[0,0]
+                ptsImage[0,1]=ptsFound[0,1]
+                ptsImage[1,0]=ptsFound[1,0]
+                ptsImage[1,1]=ptsFound[1,1]
+                ptsImage[2,0]=ptsFound[2,0]
+                ptsImage[2,1]=ptsFound[2,1]
+                ptsImage[3,0]=ptsFound[3,0]
+                ptsImage[3,1]=ptsFound[3,1]
+            else:
+                ptsImage[0,0]=ptsFound[3,0]
+                ptsImage[0,1]=ptsFound[3,1]
+                ptsImage[1,0]=ptsFound[2,0]
+                ptsImage[1,1]=ptsFound[2,1]
+                ptsImage[2,0]=ptsFound[1,0]
+                ptsImage[2,1]=ptsFound[1,1]
+                ptsImage[3,0]=ptsFound[0,0]
+                ptsImage[3,1]=ptsFound[0,1]
+            Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
+            rotImage = cv2.warpPerspective(frame,Mrot,(boxWH[0],boxWH[1]))
+            return(rotImage,frameForDrawing)
+        else:
+            return(np.array([0]),frameForDrawing)
+    else:
+        return(np.array([0]),frameForDrawing)
+
 def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     boxMask = cv2.inRange(hsvFrame, np.array(dictSet['bcr ll']), np.array(dictSet['bcr ul'])) 
@@ -349,11 +410,14 @@ def WhiteBalanceFrame(displayFrame,rotImage,frame,frameForDrawing,dictSet,wbList
     return(rgbWBR,rotImage,frame,frameForDrawing)
 
 def OpenCVComposite(sourceImage, targetImage,settingsWHS):
-    if sourceImage.size==0:
+    if (sourceImage.size==0) or (sourceImage.shape[1]==0) or (sourceImage.shape[0]==0):
         return targetImage
     if settingsWHS[2]!=100:
         scaleFactor=settingsWHS[2]/100
-        imageScaled = cv2.resize(sourceImage, (int(sourceImage.shape[1]*scaleFactor),int(sourceImage.shape[0]*scaleFactor)), interpolation = cv2.INTER_AREA)
+        if (int(sourceImage.shape[1]*scaleFactor)>0) and (int(sourceImage.shape[0]*scaleFactor)>0):
+            imageScaled = cv2.resize(sourceImage, (int(sourceImage.shape[1]*scaleFactor),int(sourceImage.shape[0]*scaleFactor)), interpolation = cv2.INTER_AREA)
+        else:
+            imageScaled=sourceImage
     else:
         imageScaled=sourceImage
     xTargetStart=int(targetImage.shape[0]*settingsWHS[1]/100)
@@ -458,6 +522,9 @@ def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
             rotImage = np.copy(frame)
     if dictSet['flg rf'][0]==2:
         rotImage,frameForDrawing = RegisterImageColorRectangle(frame,frameForDrawing,dictSet)
+        #rotImage,frameForDrawing = RegisterImageColorRectangleFlex(frame,frameForDrawing,?????)
+        #RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC2,boxC3,boxC4,boxOR,boxWH)
+        
         skipFrame=False
         if rotImage.size==1:
             skipFrame=True
@@ -644,92 +711,46 @@ def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
 
 def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
     massFrame = cv2.GaussianBlur(massFrame,(5,5),0)
-    hsvFrame = cv2.cvtColor(massFrame, cv2.COLOR_BGR2HSV)
-    #dictSet['bal ll']=[0,50,220]
-    #dictSet['bal ul']=[255,255,255]
-    massMask = cv2.inRange(hsvFrame, np.array([dictSet['bal ll']]), np.array(dictSet['bal ul'])) 
-    #cv2.imshow('massMask',massMask)
-    #dictSet['bdm ds']=[0,20,20]
-    decodeFrame=OpenCVComposite(massMask, decodeFrame, dictSet['bdm ds'])
+    massDisplay=np.copy(massFrame)
     
-    outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(massMask)
-    
-    epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
-    approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
-    approx=approx[:,0,:]
-    if approx.shape[0]!=4:
-        approx = cv2.boxPoints(boxBoundingRectangle)
-    
-    distances=np.zeros(4)
-    distances[1]= np.linalg.norm(approx[0,:]-approx[1,:])
-    distances[2]= np.linalg.norm(approx[0,:]-approx[2,:])
-    distances[3]= np.linalg.norm(approx[0,:]-approx[3,:])
-    order=np.argsort(distances)
-    ptsFound=np.copy(approx)
-    ptsFound[0,:] = approx[order[0],:]
-    ptsFound[1,:] = approx[order[1],:]
-    ptsFound[2,:] = approx[order[2],:]
-    ptsFound[3,:] = approx[order[3],:]
-    orientation=dictSet['brt or'][0]
-    ptsCard = np.float32([[dictSet['bl1 xy'][0],dictSet['bl1 xy'][1]],[dictSet['bl2 xy'][0],dictSet['bl2 xy'][1]],[dictSet['bl3 xy'][0],dictSet['bl3 xy'][1]],[dictSet['bl4 xy'][0],dictSet['bl4 xy'][1]]])
-    ptsImage = np.float32([[135,220],[765,220],[135,1095],[765,1095]]) 
-    if ptsFound.shape[0]==4:
-        if orientation==1:
-            ptsImage[0,0]=ptsFound[0,0]
-            ptsImage[0,1]=ptsFound[0,1]
-            ptsImage[1,0]=ptsFound[1,0]
-            ptsImage[1,1]=ptsFound[1,1]
-            ptsImage[2,0]=ptsFound[2,0]
-            ptsImage[2,1]=ptsFound[2,1]
-            ptsImage[3,0]=ptsFound[3,0]
-            ptsImage[3,1]=ptsFound[3,1]
-        else:
-            ptsImage[0,0]=ptsFound[3,0]
-            ptsImage[0,1]=ptsFound[3,1]
-            ptsImage[1,0]=ptsFound[2,0]
-            ptsImage[1,1]=ptsFound[2,1]
-            ptsImage[2,0]=ptsFound[1,0]
-            ptsImage[2,1]=ptsFound[1,1]
-            ptsImage[3,0]=ptsFound[0,0]
-            ptsImage[3,1]=ptsFound[0,1]
-        Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
-        rotImage = cv2.warpPerspective(massFrame,Mrot,(300,100))
-    #cv2.imshow('massFrame',massFrame)
+    rotImage,massDisplay = RegisterImageColorRectangleFlex(massFrame,massDisplay,dictSet['7F1 ll'],dictSet['7F1 ul'],dictSet['7C1 xy'],dictSet['7C2 xy'],dictSet['7C3 xy'],dictSet['7C4 xy'],dictSet['7RT or'],dictSet['7BX wh'])
+    if rotImage.size==0:
+        return -1,decodeFrame
+    cv2.imshow('massReadout', rotImage)
+    decodeFrame=OpenCVComposite(massDisplay, decodeFrame, dictSet['7M1 ds'])
+
+    rotImageDisplay=np.copy(rotImage)
     rotImage = cv2.cvtColor(rotImage, cv2.COLOR_BGR2GRAY)
-    #cv2.imshow('rotImage',rotImage)
-    #dictSet['brt ds']=[0,40,20]
-    decodeFrame=OpenCVComposite(rotImage, decodeFrame,dictSet['brt ds'])
-    
-    digitHeight=86
-    digitWidth=45
-    imageStart=55
+    digitHeight=dictSet['7DG wh'][1] 
+    digitWidth=dictSet['7DG wh'][0]
+    imageStart=dictSet['7DG sn'][0]
     digits=np.zeros((digitHeight, digitWidth, 5), np.uint8)
     total=0
-    for digit in range(5): 
-        digits[:,:,digit]=rotImage[10:96,imageStart+(digit*digitWidth):imageStart+((digit+1)*digitWidth)]    
+    for digit in range(dictSet['7DG sn'][1]): 
+        digits[:,:,digit]=rotImage[dictSet['7DG mr'][0]:dictSet['7DG mr'][0]+digitHeight,imageStart+(digit*digitWidth):imageStart+((digit+1)*digitWidth)]    
         #cv2.imshow(str(digit),digits[:,:,digit])
+        cv2.rectangle(rotImageDisplay,(imageStart+(digit*digitWidth),dictSet['7DG mr'][0]),(imageStart+((digit+1)*digitWidth),dictSet['7DG mr'][0]+digitHeight),(0,0,255),4 )
+        decodeFrame=OpenCVComposite(rotImageDisplay, decodeFrame, dictSet['7RT ds'])
         digitImage=digits[:,:,digit]
-        #dictSet['bsg ll']=[0]
-        #dictSet['bsg ul']=[150]
-        digitMask = cv2.inRange(digitImage, np.array([dictSet['bsg ll']]), np.array(dictSet['bsg ul']))
-        digitMask=ip.OpenCVRotateBound(digitMask, -2)
+        digitMask = cv2.inRange(digitImage, np.array([dictSet['7D1 ll']]), np.array(dictSet['7D1 ul']))
+        digitMask=ip.OpenCVRotateBound(digitMask, dictSet['7DG mr'][1])
         #boundingRectangle=cv2.minAreaRect(digitMask)
         x,y,w,h = cv2.boundingRect(digitMask)
         if (w<5) or (h<5):
             decode=0
         elif h>w*3:
             digitMask=digitMask[y:y+h,x:x+w]
-            #dictSet['bnm ds']=[digit*2+2,50,30]
-            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['bns ds'][0]*digit+dictSet['bnm ds'][0],dictSet['bnm ds'][1],dictSet['bnm ds'][2]])
+            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['7NS ds'][0]*digit+dictSet['7NM ds'][0],dictSet['7NM ds'][1],dictSet['7NM ds'][2]])
             decode=36
         else:
             decode=0
             digitMask=digitMask[y:y+h,x:x+w]
-            #cv2.imshow('MaskDigit'+str(digit),digitMask)
-            dictSet['MDG ds']=[digit*2+2,50,30]
-            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['bns ds'][0]*digit+dictSet['bnm ds'][0],dictSet['bnm ds'][1],dictSet['bnm ds'][2]])
+            decodeFrame=OpenCVComposite(digitMask, decodeFrame,[dictSet['7NS ds'][0]*digit+dictSet['7NM ds'][0],dictSet['7NM ds'][1],dictSet['7NM ds'][2]])
             dH=digitMask.shape[0]
             dW=digitMask.shape[1]
+            if (dH<digitHeight*.1) or (dW<digitWidth*.1):
+                decode=-1
+                break
             ttSegment=digitMask[0:int(dH*0.15),int(dW*0.25):dW-int(dW*0.25)]
             ttOn = cv2.countNonZero(ttSegment)/ttSegment.size
             if ttOn>0.4:
@@ -788,12 +809,15 @@ def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
         else:
             value=-1
             total=-1
-            print('digit '+str(digit)+' is '+str(bin(decode))+' value '+str(value))
+            #print('digit '+str(digit)+' is '+str(bin(decode))+' value '+str(value))
             cv2.imshow("digitMask",digitMask)
             break
         #print('digit '+str(digit)+' is '+str(bin(decode))+' value '+str(value))
         total=total+10**(2-digit)*value
     total=round(total,2)
+    ip.OpenCVPutText(decodeFrame,str(total),(2,decodeFrame.shape[0]-16),(255,255,255),fontScale = 0.6)
+
+    return total,decodeFrame
 
 
 
@@ -882,7 +906,9 @@ while frameNumber<=totalFrames:
     if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0) and (liveFlag):
         frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
+        decodeFrame = np.zeros((300, 200, 3), np.uint8)
         mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
+        displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7SG ds'])
         
     if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=0) and (liveFlag):
         frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
