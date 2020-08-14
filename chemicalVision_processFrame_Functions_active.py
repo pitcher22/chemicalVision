@@ -102,6 +102,8 @@ SMTP_PORT   = 993
 emailStartTime=time.mktime((2019,2,6,0,0,0,0,0,-1))
 endTime=time.mktime((2020,2,14,18,30,0,0,0,-1))
 dayLightSavings=False
+absorbanceFlag=False
+blankData=np.array([])
 
 if dayLightSavings:
     greenwichTimeAdjustment = 7
@@ -467,7 +469,6 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
     return displayFrame
 
 def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=0):
-    #connectedOnly doesn't seem to work
     rgbROI = rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]]
     if rgbROI.size==0:
         #return(allROIsummary[0,:,0],allROIsummary[1,:,0],resMask,resFrameROI,contourArea,boundingRectangle,False)
@@ -497,6 +498,11 @@ def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=
     labROIsummary=cv2.meanStdDev(labROI,mask=resMask)
     absROIsummary=cv2.meanStdDev(absROI,mask=resMask)
     allROIsummary=np.concatenate((rgbROIsummary,hsvROIsummary,labROIsummary,absROIsummary),axis=1)
+    tempROIsummary=np.copy(allROIsummary)
+    allROIsummary[:,0,:]=tempROIsummary[:,2,:]
+    allROIsummary[:,2,:]=tempROIsummary[:,0,:]
+    allROIsummary[:,9,:]=tempROIsummary[:,11,:]
+    allROIsummary[:,11,:]=tempROIsummary[:,9,:]
     if histogramHeight!=0:
         inputImages= [rgbROI,rgbROI,rgbROI,hsvROI,hsvROI,hsvROI,labROI,labROI,labROI,absROI,absROI,absROI]
         rows=range(len(inputImages))
@@ -644,9 +650,9 @@ def CheckKeys(dictSet):
             dictSet['set rc'][1]=col-1
         if ((keypress==rtArrow) | (keypress==ord('d'))) & (col<len(dictSet[sorted(dictSet)[row]])-1):
             dictSet['set rc'][1]=col+1
-    return(dictSet,continueFlag,changeCameraFlag,frameJump)
+    return(keypress,dictSet,continueFlag,changeCameraFlag,frameJump)
 
-def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
+def MakeTimePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
     pltList=[]
     for setRow,setting in zip(range(len(dictSet)),sorted(dictSet)):
         if (setting[0:2]=="fg") & (setting[4:6]=="wh"):
@@ -678,20 +684,76 @@ def MakePlots(parameterStats,dictSet,displayFrame,frameStart=0,frameEnd=0):
                 displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame
 
+def MakeFramePlots(dictSet,displayFrame,rgbROI,blankData=np.array([]),calFlag=False):
+    pltList=[]
+    for setRow,setting in zip(range(len(dictSet)),sorted(dictSet)):
+        if (setting[0:2]=="ff") & (setting[4:6]=="wh"):
+            if (dictSet[setting][0]!=0) & (dictSet[setting][1]!=0):
+                pltList.append(setting[0:3])
+    rgbROI=cv2.LUT(rgbROI, linLUTfloat)
+    vSum=np.sum(rgbROI[:,:,:],axis=0)
+    if calFlag==True:
+        #xaxis=lastCal
+        #labelFlag=True
+        xLow=400
+        xHigh=700
+        #xFilter=[(xaxis>=xLow) & (xaxis<=xHigh)]
+    else:
+        xaxis=np.arange(rgbROI.shape[1])        
+        #labelFlag=False
+        xLow=0
+        xHigh=rgbROI.shape[1]
+        xFilter=(xaxis>=xLow) & (xaxis<=xHigh)
+    for axis in pltList:
+        if dictSet[axis+' ds'][2]!=0:
+            if dictSet[axis+' xs'][0]==0:
+                xMin=dictSet[axis+' xs'][1]
+                xMax=dictSet[axis+' xs'][2]
+            else:
+                xMin=None
+                xMax=None          
+            if dictSet[axis+' ys'][0]==0:
+                yMin=dictSet[axis+' ys'][1]
+                yMax=dictSet[axis+' ys'][2]
+            else:
+                yMin=None
+                yMax=None
+            scatterFrame = np.zeros((dictSet[axis+' wh'][1], dictSet[axis+' wh'][0], 3), np.uint8)
+            if blankData.size==0:
+                xData=xaxis[xFilter]
+                yData=vSum[xFilter][:,0]
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(255,100,100),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                yData=vSum[xFilter][:,1]
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(100,255,100),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                yData=vSum[xFilter][:,2]
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(100,100,255),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                yData=np.sum(vSum[xFilter],axis=1)
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(255,255,255),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
+            else:
+                xData=xaxis[xFilter]
+                yData=np.sum(vSum[xFilter],axis=1)
+                yData=-np.log(yData/blankData)
+                ip.OpenCVDisplayedScatter(scatterFrame,xData,yData,0,0,dictSet[axis+' wh'][0],dictSet[axis+' wh'][1],(255,255,255),1,ydataRangemin=yMin,ydataRangemax=yMax,xdataRangemin=xMin,xdataRangemax=xMax)
+                displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
+    return displayFrame,np.sum(vSum[xFilter],axis=1)
+
+
 def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
-    dfCollected=(parameterStats[31,0,:,0]==1) & (parameterStats[12,0,:,0]!=0)
+    #dfCollected=(parameterStats[31,0,:,0]==1) & (parameterStats[12,0,:,0]!=0)
+    dfCollected=(parameterStats[31,0,:,0]==1)
     dfMean=pd.DataFrame(data=parameterStats[0:12,0,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
     dfStdev=pd.DataFrame(data=parameterStats[0:12,1,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
     dfMost=pd.DataFrame(data=parameterStats[0:12,2,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
     writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
     workbook  = writer.book
-    dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=8,index=False)
-    dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=21,index=False)
-    dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=34,index=False)
+    dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=9,index=False)
+    dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=22,index=False)
+    dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=35,index=False)
     worksheetData = writer.sheets['FrameData']
-    worksheetData.write('I1', 'Means')
-    worksheetData.write('V1', 'Standard Deviations')
-    worksheetData.write('AI1', 'Most Frequent Values')
+    worksheetData.write('J1', 'Means')
+    worksheetData.write('W1', 'Standard Deviations')
+    worksheetData.write('AJ1', 'Most Frequent Values')
     worksheetData.write('A2', 'FrameNumber')
     worksheetData.write('B2', 'FrameRate')
     worksheetData.write('C2', 'Time')
@@ -699,6 +761,7 @@ def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
     worksheetData.write('E2', 'Height')
     worksheetData.write('F2', 'Width')
     worksheetData.write('G2', 'ContourArea')
+    worksheetData.write('H2', 'Mass')
     worksheetData.write_column('A3', parameterStats[30,0,dfCollected,roiNumber])
     worksheetData.write_column('B3', parameterStats[29,0,dfCollected,roiNumber])
     worksheetData.write_column('C3', parameterStats[28,0,dfCollected,roiNumber])
@@ -706,19 +769,19 @@ def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
     worksheetData.write_column('E3', parameterStats[13,0,dfCollected,roiNumber])
     worksheetData.write_column('F3', parameterStats[14,0,dfCollected,roiNumber])
     worksheetData.write_column('G3', parameterStats[15,0,dfCollected,roiNumber])
+    worksheetData.write_column('H3', parameterStats[16,0,dfCollected,roiNumber])
     workbook.close()
     writer.save()
 
 def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
     massFrame = cv2.GaussianBlur(massFrame,(5,5),0)
     massDisplay=np.copy(massFrame)
-    
     rotImage,massDisplay = RegisterImageColorRectangleFlex(massFrame,massDisplay,dictSet['7F1 ll'],dictSet['7F1 ul'],dictSet['7C1 xy'],dictSet['7C2 xy'],dictSet['7C3 xy'],dictSet['7C4 xy'],dictSet['7RT or'],dictSet['7BX wh'])
     if rotImage.size==0:
         return -1,decodeFrame
-    cv2.imshow('massReadout', rotImage)
+    if dictSet['flg di'][0]==1:
+        cv2.imshow('massReadout', rotImage)
     decodeFrame=OpenCVComposite(massDisplay, decodeFrame, dictSet['7M1 ds'])
-
     rotImageDisplay=np.copy(rotImage)
     rotImage = cv2.cvtColor(rotImage, cv2.COLOR_BGR2GRAY)
     digitHeight=dictSet['7DG wh'][1] 
@@ -816,7 +879,6 @@ def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
         total=total+10**(2-digit)*value
     total=round(total,2)
     ip.OpenCVPutText(decodeFrame,str(total),(2,decodeFrame.shape[0]-16),(255,255,255),fontScale = 0.6)
-
     return total,decodeFrame
 
 
@@ -852,6 +914,8 @@ else:
     totalFrames=100000
 
 parameterStats=np.zeros((32,6,totalFrames,6))
+grabbedStats=np.zeros((32,6,totalFrames,6))
+grabCount=0
     
 #ParameterStats Map
 #1st dimension 0 to 14: labels=["R","G","B","H","S","V","L","a","b","Ra","Ga","Ba","Ga-Ra","Ba-Ra","Ga-Ba"]
@@ -906,9 +970,14 @@ while frameNumber<=totalFrames:
     if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0) and (liveFlag):
         frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
-        decodeFrame = np.zeros((300, 200, 3), np.uint8)
-        mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
-        displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7SG ds'])
+        if dictSet['7SG ds'][2]!=0:
+            decodeFrame = np.zeros((300, 200, 3), np.uint8)
+            mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
+            displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7SG ds'])
+        else:
+            mass=-1
+    else:
+        mass=-1
         
     if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=0) and (liveFlag):
         frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
@@ -928,18 +997,27 @@ while frameNumber<=totalFrames:
     frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
 
     parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
-    parameterStats[31,0,frameNumber,:]=1
-    parameterStats[30,0,frameNumber,:]=frameNumber
-    parameterStats[29,0,frameNumber,:]=frameRate
+    parameterStats[16,0,frameNumber,:]=mass
     if liveFlag:
         parameterStats[28,0,frameNumber,:]=time.time()
     elif videoFlag:
         parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
     else:
         parameterStats[28,0,frameNumber,:]=0
-        
-    displayFrame=MakePlots(parameterStats,dictSet,displayFrame)
-    
+    parameterStats[29,0,frameNumber,:]=frameRate
+    parameterStats[30,0,frameNumber,:]=frameNumber
+    parameterStats[31,0,frameNumber,:]=1
+
+    if dictSet['flg tp'][0]!=0:
+        displayFrame=MakeTimePlots(parameterStats,dictSet,displayFrame)
+
+    if dictSet['flg fp'][0]!=0:
+        roiSetName='RO1'
+        if absorbanceFlag==True:
+            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]],blankData,calFlag=False)
+        else:
+            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]])
+            
     if dictSet['PST ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PST ds'])
 
@@ -957,14 +1035,27 @@ while frameNumber<=totalFrames:
         settingsFrame=DisplayAllSettings(dictSet,30,12,settingsFrame)
         cv2.imshow('Settings', settingsFrame)
         
-    ip.OpenCVPutText(displayFrame,str(frameNumber),(2,displayHeight-8),(255,255,255))
+    ip.OpenCVPutText(displayFrame,'frame '+str(frameNumber).zfill(5)+' grabbed '+str(grabCount).zfill(5),(2,displayHeight-8),(255,255,255))
     
     cv2.imshow('Display', displayFrame)
 
     if (dictSet['flg rn'][0]==1) & (dictSet['flg rc'][0]==1):
         outp.write(displayFrame)
 
-    dictSet,continueFlag,changeCameraFlag,frameJump=CheckKeys(dictSet)
+    keypress,dictSet,continueFlag,changeCameraFlag,frameJump=CheckKeys(dictSet)
+    
+    if keypress == ord('b'):
+        if absorbanceFlag==False:
+            blankData=signal
+            absorbanceFlag=True
+        else:
+            absorbanceFlag=False
+    
+    if keypress == ord('g'):
+        cv2.imwrite('displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+        grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
+        grabCount=grabCount+1
+        
     if continueFlag==False:
         break
     if changeCameraFlag and dictSet['CAM en'][1]==1:
@@ -1020,4 +1111,12 @@ if (saveSettings=="Y") | (saveSettings=="y"):
     outString = outString + '}'    
     print(outString)
     settingsFile.write(outString)
-    settingsFile.close()    
+    settingsFile.close()
+
+if grabCount!=0:
+    saveSettings = input("Save grabbed values (Y/n)?")
+    if (saveSettings=="Y") | (saveSettings=="y"):
+        root = tk.Tk()
+        root.withdraw()
+        settings_file_path = asksaveasfilename(filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
+        WriteDataToExcel(grabbedStats[:,:,0:grabCount,:],0,settings_file_path)
