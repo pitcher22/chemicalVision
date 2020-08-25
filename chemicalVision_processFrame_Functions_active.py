@@ -904,16 +904,16 @@ else:
         #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
         #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
         #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        #ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        #ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
         #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
         #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
         #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
         #ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     totalFrames=100000
 
-parameterStats=np.zeros((32,6,totalFrames,6))
-grabbedStats=np.zeros((32,6,totalFrames,6))
+parameterStats=np.zeros((32,6,totalFrames,60))
+grabbedStats=np.zeros((32,6,totalFrames,60))
 grabCount=0
     
 #ParameterStats Map
@@ -1076,8 +1076,8 @@ while frameNumber<=totalFrames:
         #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
         #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
         #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        #ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        #ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
         #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
         #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
         #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
