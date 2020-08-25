@@ -285,7 +285,7 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
     outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(boxMask)
     if outerBoxContour.size!=0:
         cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
-        epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
+        epsilon = 0.01*cv2.arcLength(outerBoxContour,True)
         approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
         approx=approx[:,0,:]
         if approx.shape[0]!=4:
@@ -738,7 +738,6 @@ def MakeFramePlots(dictSet,displayFrame,rgbROI,blankData=np.array([]),calFlag=Fa
                 displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame,np.sum(vSum[xFilter],axis=1)
 
-
 def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
     #dfCollected=(parameterStats[31,0,:,0]==1) & (parameterStats[12,0,:,0]!=0)
     dfCollected=(parameterStats[31,0,:,0]==1)
@@ -777,7 +776,7 @@ def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
     massFrame = cv2.GaussianBlur(massFrame,(5,5),0)
     massDisplay=np.copy(massFrame)
     rotImage,massDisplay = RegisterImageColorRectangleFlex(massFrame,massDisplay,dictSet['7F1 ll'],dictSet['7F1 ul'],dictSet['7C1 xy'],dictSet['7C2 xy'],dictSet['7C3 xy'],dictSet['7C4 xy'],dictSet['7RT or'],dictSet['7BX wh'])
-    if rotImage.size==0:
+    if rotImage.size<=1:
         return -1,decodeFrame
     if dictSet['flg di'][0]==1:
         cv2.imshow('massReadout', rotImage)
@@ -902,15 +901,15 @@ else:
     if dictSet['CAM en'][1]==1:
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+        #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+        #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+        #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+        #ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+        #ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+        #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+        #ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     totalFrames=100000
 
 parameterStats=np.zeros((32,6,totalFrames,6))
@@ -944,7 +943,16 @@ while frameNumber<=totalFrames:
     if videoFlag:
         cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
         frameRate=cap.get(cv2.CAP_PROP_FPS)
-        ret, frame = cap.read() 
+        if (dictSet['frm av'][0]>1):
+            ret, frame = cap.read() 
+            frameAcc=np.zeros((frame.shape), np.uint32)
+            frameAcc=frameAcc+frame
+            for frameNumber in range(dictSet['frm av'][0]-1):
+                ret, frame = cap.read() 
+                frameAcc=frameAcc+frame
+            frame=(frameAcc/dictSet['frm av'][0]).astype(np.uint8)
+        else:
+            ret, frame = cap.read() 
         if (dictSet['CM2 en'][0]!=0) and (liveFlag):
             ret2, frame2 = cap2.read() 
             if ret2==False:
@@ -993,20 +1001,21 @@ while frameNumber<=totalFrames:
         if (setting[0:2]=="WB") & (setting[4:6]=="wh"):
             if (dictSet[setting][0]!=0) & (dictSet[setting][1]!=0):
                 wbList.append(setting[0:3])
-
-    frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
-
-    parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
-    parameterStats[16,0,frameNumber,:]=mass
-    if liveFlag:
-        parameterStats[28,0,frameNumber,:]=time.time()
-    elif videoFlag:
-        parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
-    else:
-        parameterStats[28,0,frameNumber,:]=0
-    parameterStats[29,0,frameNumber,:]=frameRate
-    parameterStats[30,0,frameNumber,:]=frameNumber
-    parameterStats[31,0,frameNumber,:]=1
+                
+    if dictSet['flg pf'][0]!=0:
+        frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
+    
+        parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
+        parameterStats[16,0,frameNumber,:]=mass
+        if liveFlag:
+            parameterStats[28,0,frameNumber,:]=time.time()
+        elif videoFlag:
+            parameterStats[28,0,frameNumber,:]=frameNumber/frameRate
+        else:
+            parameterStats[28,0,frameNumber,:]=0
+        parameterStats[29,0,frameNumber,:]=frameRate
+        parameterStats[30,0,frameNumber,:]=frameNumber
+        parameterStats[31,0,frameNumber,:]=1
 
     if dictSet['flg tp'][0]!=0:
         displayFrame=MakeTimePlots(parameterStats,dictSet,displayFrame)
@@ -1014,9 +1023,9 @@ while frameNumber<=totalFrames:
     if dictSet['flg fp'][0]!=0:
         roiSetName='RO1'
         if absorbanceFlag==True:
-            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]],blankData,calFlag=False)
+            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,frame[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]],blankData,calFlag=False)
         else:
-            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]])
+            displayFrame,signal=MakeFramePlots(dictSet,displayFrame,frame[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]])
             
     if dictSet['PST ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PST ds'])
@@ -1064,15 +1073,15 @@ while frameNumber<=totalFrames:
             cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+        #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+        #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+        #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+        #ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+        #ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+        #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+        #ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     if (frameJump!=0) & (liveFlag==False):
         if np.abs(frameJump)==1:
             frameNumber=frameNumber+frameJump
