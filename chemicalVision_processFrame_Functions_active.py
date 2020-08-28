@@ -738,7 +738,7 @@ def MakeFramePlots(dictSet,displayFrame,rgbROI,blankData=np.array([]),calFlag=Fa
                 displayFrame=OpenCVComposite(scatterFrame, displayFrame, dictSet[axis+' ds'])
     return displayFrame,np.sum(vSum[xFilter],axis=1)
 
-def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
+def WriteMultiFrameDataToExcel(parameterStats,roiNumber,outExcelFileName):
     #dfCollected=(parameterStats[31,0,:,0]==1) & (parameterStats[12,0,:,0]!=0)
     dfCollected=(parameterStats[31,0,:,0]==1)
     dfMean=pd.DataFrame(data=parameterStats[0:12,0,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
@@ -769,6 +769,38 @@ def WriteDataToExcel(parameterStats,roiNumber,outExcelFileName):
     worksheetData.write_column('F3', parameterStats[14,0,dfCollected,roiNumber])
     worksheetData.write_column('G3', parameterStats[15,0,dfCollected,roiNumber])
     worksheetData.write_column('H3', parameterStats[16,0,dfCollected,roiNumber])
+    workbook.close()
+    writer.save()
+
+def WriteSingleFrameDataToExcel(frameStats,roiList,outExcelFileName):
+    dfMean=pd.DataFrame(data=frameStats[0:12,0,0:len(roiList)].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"])
+    dfStdev=pd.DataFrame(data=frameStats[0:12,1,0:len(roiList)].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"])
+    dfMost=pd.DataFrame(data=frameStats[0:12,2,0:len(roiList)].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"])
+    writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
+    workbook  = writer.book
+    dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=9,index=False)
+    dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=22,index=False)
+    dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=35,index=False)
+    worksheetData = writer.sheets['FrameData']
+    worksheetData.write('J1', 'Means')
+    worksheetData.write('W1', 'Standard Deviations')
+    worksheetData.write('AJ1', 'Most Frequent Values')
+    worksheetData.write('A2', 'FrameNumber')
+    worksheetData.write('B2', 'FrameRate')
+    worksheetData.write('C2', 'Time')
+    worksheetData.write('D2', 'Area')
+    worksheetData.write('E2', 'Height')
+    worksheetData.write('F2', 'Width')
+    worksheetData.write('G2', 'ContourArea')
+    worksheetData.write('H2', 'Mass')
+    worksheetData.write_column('A3', frameStats[30,0,0:len(roiList)])
+    worksheetData.write_column('B3', frameStats[29,0,0:len(roiList)])
+    worksheetData.write_column('C3', frameStats[28,0,0:len(roiList)])
+    worksheetData.write_column('D3', frameStats[12,0,0:len(roiList)])
+    worksheetData.write_column('E3', frameStats[13,0,0:len(roiList)])
+    worksheetData.write_column('F3', frameStats[14,0,0:len(roiList)])
+    worksheetData.write_column('G3', frameStats[15,0,0:len(roiList)])
+    worksheetData.write_column('H3', frameStats[16,0,0:len(roiList)])
     workbook.close()
     writer.save()
 
@@ -893,24 +925,24 @@ else:
     outFileName=os.getcwd()+'\\Processed.avi'
     #outFileName=os.getcwd()+'\\'+time.ctime()+'_Processed.avi'
     cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
-    if dictSet['CM2 en'][0]!=0:
+    if dictSet['CM2 en'][0]!=-1:
         cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0]))
-    if dictSet['CM3 en'][0]!=0:
+    if dictSet['CM3 en'][0]!=-1:
         cap3 = cv2.VideoCapture(int(dictSet['CM3 en'][0]))
     #cap = cv2.VideoCapture(0)
     if dictSet['CAM en'][1]==1:
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
         ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
         ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        #ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
-    totalFrames=100000
+        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+    totalFrames=10000
 
 parameterStats=np.zeros((32,6,totalFrames,60))
 grabbedStats=np.zeros((32,6,totalFrames,60))
@@ -953,11 +985,11 @@ while frameNumber<=totalFrames:
             frame=(frameAcc/dictSet['frm av'][0]).astype(np.uint8)
         else:
             ret, frame = cap.read() 
-        if (dictSet['CM2 en'][0]!=0) and (liveFlag):
+        if (dictSet['CM2 en'][0]!=-1) and (liveFlag):
             ret2, frame2 = cap2.read() 
             if ret2==False:
                 break
-        if (dictSet['CM3 en'][0]!=0) and (liveFlag):
+        if (dictSet['CM3 en'][0]!=-1) and (liveFlag):
             ret3, frame3 = cap3.read() 
             if ret3==False:
                 break
@@ -975,7 +1007,7 @@ while frameNumber<=totalFrames:
     if dictSet['PRE ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PRE ds'])
 
-    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=0) and (liveFlag):
+    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=-1) and (liveFlag):
         frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
         if dictSet['7SG ds'][2]!=0:
@@ -987,7 +1019,7 @@ while frameNumber<=totalFrames:
     else:
         mass=-1
         
-    if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=0) and (liveFlag):
+    if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=-1) and (liveFlag):
         frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop3, displayFrame,dictSet['CM3 ds'])
 
@@ -1073,15 +1105,15 @@ while frameNumber<=totalFrames:
             cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        #ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        #ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        #ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
         ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
         ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        #ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        #ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        #ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        #ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     if (frameJump!=0) & (liveFlag==False):
         if np.abs(frameJump)==1:
             frameNumber=frameNumber+frameJump
@@ -1100,9 +1132,9 @@ while frameNumber<=totalFrames:
             
 cap.release()
 outp.release()
-if (dictSet['CM2 en'][0]!=0) and (liveFlag):
+if (dictSet['CM2 en'][0]!=-1) and (liveFlag):
     cap2.release()
-if (dictSet['CM3 en'][0]!=0) and (liveFlag):
+if (dictSet['CM3 en'][0]!=-1) and (liveFlag):
     cap3.release()
 cv2.destroyAllWindows()
     
@@ -1122,10 +1154,20 @@ if (saveSettings=="Y") | (saveSettings=="y"):
     settingsFile.write(outString)
     settingsFile.close()
 
+if videoFlag==False:
+    saveSettings = input("Save frame values (Y/n)?")
+    if (saveSettings=="Y") | (saveSettings=="y"):
+        root = tk.Tk()
+        root.withdraw()
+        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
+        WriteSingleFrameDataToExcel(parameterStats[:,:,frameNumber,:],roiList,data_file_path)
+        #WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
+        
 if grabCount!=0:
     saveSettings = input("Save grabbed values (Y/n)?")
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        settings_file_path = asksaveasfilename(filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
-        WriteDataToExcel(grabbedStats[:,:,0:grabCount,:],0,settings_file_path)
+        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
+        #WriteSingleFrameDataToExcel(grabbedStats[:,:,0,:],roiList,data_file_path)
+        WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
