@@ -314,7 +314,7 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
                 ptsImage[2,1]=ptsFound[2,1]
                 ptsImage[3,0]=ptsFound[3,0]
                 ptsImage[3,1]=ptsFound[3,1]
-            else:
+            elif orientation==2:
                 ptsImage[0,0]=ptsFound[3,0]
                 ptsImage[0,1]=ptsFound[3,1]
                 ptsImage[1,0]=ptsFound[2,0]
@@ -323,6 +323,24 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
                 ptsImage[2,1]=ptsFound[1,1]
                 ptsImage[3,0]=ptsFound[0,0]
                 ptsImage[3,1]=ptsFound[0,1]
+            elif orientation==3:
+                ptsImage[0,0]=ptsFound[2,0]
+                ptsImage[0,1]=ptsFound[2,1]
+                ptsImage[1,0]=ptsFound[3,0]
+                ptsImage[1,1]=ptsFound[3,1]
+                ptsImage[2,0]=ptsFound[0,0]
+                ptsImage[2,1]=ptsFound[0,1]
+                ptsImage[3,0]=ptsFound[1,0]
+                ptsImage[3,1]=ptsFound[1,1]
+            elif orientation==4:
+                ptsImage[0,0]=ptsFound[1,0]
+                ptsImage[0,1]=ptsFound[1,1]
+                ptsImage[1,0]=ptsFound[0,0]
+                ptsImage[1,1]=ptsFound[0,1]
+                ptsImage[2,0]=ptsFound[3,0]
+                ptsImage[2,1]=ptsFound[3,1]
+                ptsImage[3,0]=ptsFound[2,0]
+                ptsImage[3,1]=ptsFound[2,1]
             Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
             rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][1],dictSet['box wh'][0]))
             return(rotImage,frameForDrawing)
@@ -461,11 +479,36 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
             ip.OpenCVPutText(displayFrame,str(dictSet[setting][setCol]),(parmWidth*(setCol+2),parmHeight*(setRow+1)),setColor, fontScale = 0.2)
     return displayFrame
 
+def DisplaySomeSettings(dictSet,parmWidth,parmHeight,displayFrame,numRowsPad,fontScale):
+    settings=sorted(dictSet)
+    setRow=0
+    numRows=range(numRowsPad*2)
+    activeSettingsRow=dictSet['set rc'][0]
+    activeSettingsColumn=dictSet['set rc'][1]
+    if activeSettingsColumn>len(dictSet[settings[activeSettingsRow]])-1:
+        activeSettingsColumn=len(dictSet[settings[activeSettingsRow]])-1
+        dictSet['set rc'][1]=activeSettingsColumn
+    for numRow,setRow,setting in zip(numRows,range(activeSettingsRow-numRowsPad,activeSettingsRow+numRowsPad),settings[activeSettingsRow-numRowsPad:activeSettingsRow+numRowsPad]): 
+        if (activeSettingsRow==setRow):
+            setColor=(0,0,255)
+        else:
+            setColor=(255,255,255)
+        ip.OpenCVPutText(displayFrame, setting, (int(parmWidth*0.2),parmHeight*(numRow+1)), setColor, fontScale = fontScale)
+        if activeSettingsColumn>len(dictSet[settings[activeSettingsRow]])-1:
+            activeSettingsColumn=len(dictSet[settings[activeSettingsRow]])-1
+        for setCol in range(len(dictSet[setting])):
+            if (activeSettingsColumn==setCol) & (activeSettingsRow==setRow):
+                setColor=(0,0,255)
+            else:
+                setColor=(255,255,255)
+            ip.OpenCVPutText(displayFrame,str(dictSet[setting][setCol]),(parmWidth*(setCol+2),parmHeight*(numRow+1)),setColor, fontScale = fontScale)
+    return displayFrame
+
 def SummarizeROI(rotImage,roiSetName,dictSet,connectedOnly=True,histogramHeight=0):
     rgbROI = rotImage[dictSet[roiSetName+' xy'][1]:dictSet[roiSetName+' xy'][1]+dictSet[roiSetName+' wh'][1], dictSet[roiSetName+' xy'][0]:dictSet[roiSetName+' xy'][0]+dictSet[roiSetName+' wh'][0]]
     if rgbROI.size==0:
         #return(allROIsummary[0,:,0],allROIsummary[1,:,0],resMask,resFrameROI,contourArea,boundingRectangle,False)
-        return(np.array([]),np.array([]),np.array([]),np.array([]),np.array([]),np.array([]),np.array([]))
+        return(np.array([0,0,0,0,0,0,0,0,0,0,0,0]),np.array([0,0,0,0,0,0,0,0,0,0,0,0]),np.array([]),np.array([]),np.array([]),np.array([]),np.array([]))
     hsvROI = cv2.cvtColor(rgbROI, cv2.COLOR_BGR2HSV)
     hsvROI[:,:,0]=ip.ShiftHOriginToValue(hsvROI[:,:,0],dictSet['hue lo'][0],dictSet['hue lo'][1])
     labROI = cv2.cvtColor(rgbROI, cv2.COLOR_BGR2LAB)
@@ -633,6 +676,14 @@ def CheckKeys(dictSet):
                 changeCameraFlag=True
         if (keypress==ord('<')) & (dictSet[sorted(dictSet)[row]][col]>lLimit):
             dictSet[sorted(dictSet)[row]][col]=dictSet[sorted(dictSet)[row]][col]-10   
+            if sorted(dictSet)[row].find('CAM')==0:
+                changeCameraFlag=True
+        if (keypress==ord('.')) & (dictSet[sorted(dictSet)[row]][col]<hLimit-9):
+            dictSet[sorted(dictSet)[row]][col]=dictSet[sorted(dictSet)[row]][col]+100
+            if sorted(dictSet)[row].find('CAM')==0:
+                changeCameraFlag=True
+        if (keypress==ord(',')) & (dictSet[sorted(dictSet)[row]][col]>lLimit):
+            dictSet[sorted(dictSet)[row]][col]=dictSet[sorted(dictSet)[row]][col]-100  
             if sorted(dictSet)[row].find('CAM')==0:
                 changeCameraFlag=True
         if ((keypress==upArrow) | (keypress==ord('w'))) & (row>0):
@@ -938,7 +989,10 @@ else:
     totalFrames=10000
 
 parameterStats=np.zeros((32,6,totalFrames,60))
-grabbedStats=np.zeros((32,6,totalFrames,60))
+if totalFrames==1:
+    grabbedStats=np.zeros((32,6,100,60))
+else:
+    grabbedStats=np.zeros((32,6,totalFrames,60))
 grabCount=0
     
 #ParameterStats Map
@@ -1029,7 +1083,6 @@ while frameNumber<=totalFrames:
                 
     if dictSet['flg pf'][0]!=0:
         frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing = ProcessOneFrame(frame,dictSet,displayFrame,wbList=wbList,roiList=roiList)
-    
         parameterStats[0:16,:,frameNumber,0:frameStats.shape[2]]=frameStats
         parameterStats[16,0,frameNumber,:]=mass
         if liveFlag:
@@ -1065,8 +1118,9 @@ while frameNumber<=totalFrames:
         displayFrame=OpenCVComposite(rotForDrawing, displayFrame,dictSet['RMK ds'])
         
     if dictSet['flg ds'][0]==1:
-        settingsFrame = np.zeros((1080, 150, 3), np.uint8)
-        settingsFrame=DisplayAllSettings(dictSet,20,8,settingsFrame)
+        settingsFrame = np.zeros((500, 300, 3), np.uint8)
+        #settingsFrame=DisplayAllSettings(dictSet,20,8,settingsFrame)
+        settingsFrame=DisplaySomeSettings(dictSet,60,24,settingsFrame,5,0.6)
         cv2.imshow('Settings', settingsFrame)
         
     ip.OpenCVPutText(displayFrame,'frame '+str(frameNumber).zfill(5)+' grabbed '+str(grabCount).zfill(5),(2,displayHeight-8),(255,255,255))
