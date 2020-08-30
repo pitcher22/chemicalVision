@@ -140,6 +140,11 @@ root = tk.Tk()
 root.withdraw()
 root.wm_attributes('-topmost', 1)
 video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
+video_file_pathSplit = os.path.split(video_file_path)
+video_file_dir=video_file_pathSplit[0]
+video_file_file=video_file_pathSplit[1]
+video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
+
 localFlag=True
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
 #read a limits file as well here to set upperLimitString
@@ -482,13 +487,21 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame,fontScale):
 def DisplaySomeSettings(dictSet,parmWidth,parmHeight,displayFrame,numRowsPad,fontScale):
     settings=sorted(dictSet)
     setRow=0
-    numRows=range(numRowsPad*2)
     activeSettingsRow=dictSet['set rc'][0]
     activeSettingsColumn=dictSet['set rc'][1]
+    if activeSettingsRow-numRowsPad>=0:
+        startRow=activeSettingsRow-numRowsPad
+    else:
+        startRow=0
+    if activeSettingsRow+numRowsPad<=len(settings):
+        endRow=activeSettingsRow+numRowsPad
+    else:
+        endRow=len(settings)    
+    numRows=endRow-startRow
     if activeSettingsColumn>len(dictSet[settings[activeSettingsRow]])-1:
         activeSettingsColumn=len(dictSet[settings[activeSettingsRow]])-1
         dictSet['set rc'][1]=activeSettingsColumn
-    for numRow,setRow,setting in zip(numRows,range(activeSettingsRow-numRowsPad,activeSettingsRow+numRowsPad),settings[activeSettingsRow-numRowsPad:activeSettingsRow+numRowsPad]): 
+    for numRow,setRow,setting in zip(range(numRows),range(startRow,endRow),settings[startRow:endRow]): 
         if (activeSettingsRow==setRow):
             setColor=(0,0,255)
         else:
@@ -1144,7 +1157,7 @@ while frameNumber<=totalFrames:
             absorbanceFlag=False
     
     if keypress == ord('g'):
-        cv2.imwrite('displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+        cv2.imwrite(video_file_dir+'/'+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
         grabCount=grabCount+1
         
@@ -1193,7 +1206,7 @@ saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
     root.withdraw()
-    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set')
+    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set',initialfile=video_file_filename)
     settingsFile = open(settings_file_path,'w')
     sortedDictSet = sorted(dictSet)
     outString = '{' + "\n"
@@ -1210,7 +1223,7 @@ if videoFlag==False:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile='frameData',defaultextension='.xlsx')
+        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'frameData',defaultextension='.xlsx')
         WriteSingleFrameDataToExcel(parameterStats[:,:,frameNumber,:],roiList,data_file_path)
         #WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
         
@@ -1219,6 +1232,6 @@ if grabCount!=0:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile='grabbedData' ,defaultextension='.xlsx')
+        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'grabbedData' ,defaultextension='.xlsx')
         #WriteSingleFrameDataToExcel(grabbedStats[:,:,0,:],roiList,data_file_path)
         WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
