@@ -139,7 +139,7 @@ for chan in range(256):
 root = tk.Tk()
 root.withdraw()
 root.wm_attributes('-topmost', 1)
-video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '.jpg'),('video files', '.mp4'),('all files', '.*')])
+video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
 localFlag=True
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
 #read a limits file as well here to set upperLimitString
@@ -456,7 +456,7 @@ def OpenCVComposite(sourceImage, targetImage,settingsWHS):
         targetImage[xTargetStart:xTargetEnd,yTargetStart:yTargetEnd,2]=imageScaled[0:xSourceEnd,0:ySourceEnd]
     return targetImage
 
-def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
+def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame,fontScale):
     setRow=0
     activeSettingsRow=dictSet['set rc'][0]
     activeSettingsColumn=dictSet['set rc'][1]
@@ -468,7 +468,7 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
             setColor=(0,0,255)
         else:
             setColor=(255,255,255)
-        ip.OpenCVPutText(displayFrame, setting, (int(parmWidth*0.2),parmHeight*(setRow+1)), setColor, fontScale = 0.2)
+        ip.OpenCVPutText(displayFrame, setting, (int(parmWidth*0.2),parmHeight*(setRow+1)), setColor, fontScale = fontScale)
         if activeSettingsColumn>len(dictSet[sorted(dictSet)[activeSettingsRow]])-1:
             activeSettingsColumn=len(dictSet[sorted(dictSet)[activeSettingsRow]])-1
         for setCol in range(len(dictSet[setting])):
@@ -476,7 +476,7 @@ def DisplayAllSettings(dictSet,parmWidth,parmHeight,displayFrame):
                 setColor=(0,0,255)
             else:
                 setColor=(255,255,255)
-            ip.OpenCVPutText(displayFrame,str(dictSet[setting][setCol]),(parmWidth*(setCol+2),parmHeight*(setRow+1)),setColor, fontScale = 0.2)
+            ip.OpenCVPutText(displayFrame,str(dictSet[setting][setCol]),(parmWidth*(setCol+2),parmHeight*(setRow+1)),setColor, fontScale = fontScale)
     return displayFrame
 
 def DisplaySomeSettings(dictSet,parmWidth,parmHeight,displayFrame,numRowsPad,fontScale):
@@ -609,9 +609,10 @@ def ProcessOneFrame(frame,dictSet,displayFrame,wbList=["WB1"],roiList=["RO1"]):
                 displayFrame=OpenCVComposite(resRGB, displayFrame, dictSet[roiSetName+' ds'])
             if dictSet[roiSetName+' cs'][2]!=0:
                 #box = cv2.boxPoints(boundingRectangle)
-                x,y,w,h = cv2.boundingRect(resMask)
+                if resMask.size>1:
+                    x,y,w,h = cv2.boundingRect(resMask)
                 #displayFrame=OpenCVComposite(resRGB[x:x+w,y:y+h,:], displayFrame, dictSet[roiSetName+' cs'])
-                displayFrame=OpenCVComposite(resRGB[y:y+h,x:x+w,:], displayFrame, dictSet[roiSetName+' cs'])
+                    displayFrame=OpenCVComposite(resRGB[y:y+h,x:x+w,:], displayFrame, dictSet[roiSetName+' cs'])
     return frameStats,displayFrame,frame,frameForDrawing,rotImage,rotForDrawing
 
 def ToggleFlag(flagName,dictSet):
@@ -1118,9 +1119,12 @@ while frameNumber<=totalFrames:
         displayFrame=OpenCVComposite(rotForDrawing, displayFrame,dictSet['RMK ds'])
         
     if dictSet['flg ds'][0]==1:
-        settingsFrame = np.zeros((500, 300, 3), np.uint8)
-        #settingsFrame=DisplayAllSettings(dictSet,20,8,settingsFrame)
+        settingsFrame = np.zeros((300, 300, 3), np.uint8)
         settingsFrame=DisplaySomeSettings(dictSet,60,24,settingsFrame,5,0.6)
+        cv2.imshow('Settings', settingsFrame)
+    elif dictSet['flg ds'][0]==2:
+        settingsFrame = np.zeros((1080, 300, 3), np.uint8)
+        settingsFrame=DisplayAllSettings(dictSet,20,8,settingsFrame,0.2)
         cv2.imshow('Settings', settingsFrame)
         
     ip.OpenCVPutText(displayFrame,'frame '+str(frameNumber).zfill(5)+' grabbed '+str(grabCount).zfill(5),(2,displayHeight-8),(255,255,255))
@@ -1189,7 +1193,7 @@ saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
     root.withdraw()
-    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
+    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set')
     settingsFile = open(settings_file_path,'w')
     sortedDictSet = sorted(dictSet)
     outString = '{' + "\n"
@@ -1206,7 +1210,7 @@ if videoFlag==False:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
+        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile='frameData',defaultextension='.xlsx')
         WriteSingleFrameDataToExcel(parameterStats[:,:,frameNumber,:],roiList,data_file_path)
         #WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
         
@@ -1215,6 +1219,6 @@ if grabCount!=0:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')])
+        data_file_path = asksaveasfilename(initialdir=os.getcwd(),filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile='grabbedData' ,defaultextension='.xlsx')
         #WriteSingleFrameDataToExcel(grabbedStats[:,:,0,:],roiList,data_file_path)
         WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
