@@ -165,10 +165,10 @@ else:
     settingString=settingsFile.read()
     settingsFile.close()
     dictSet=eval(settingString)
-settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
-settingString=settingsFile.read()
-settingsFile.close()
-dictUL=eval(settingString)
+#settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
+#settingString=settingsFile.read()
+#settingsFile.close()
+#dictUL=eval(settingString)
 
 def FindLargestContour(mask):
     if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
