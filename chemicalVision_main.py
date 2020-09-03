@@ -282,7 +282,7 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
     boxMask = cv2.inRange(hsvFrame, np.array(dictSet['bcr ll']), np.array(dictSet['bcr ul'])) 
     outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(boxMask)
     if outerBoxContour.size!=0:
-        cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
+        cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),40)
         epsilon = 0.01*cv2.arcLength(outerBoxContour,True)
         approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
         approx=approx[:,0,:]
