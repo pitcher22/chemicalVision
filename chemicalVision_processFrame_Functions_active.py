@@ -139,7 +139,7 @@ for chan in range(256):
 root = tk.Tk()
 root.withdraw()
 root.wm_attributes('-topmost', 1)
-video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
+video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg | *.png'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
 video_file_pathSplit = os.path.split(video_file_path)
 video_file_dir=video_file_pathSplit[0]
 video_file_file=video_file_pathSplit[1]
@@ -347,7 +347,8 @@ def RegisterImageColorRectangle(frame,frameForDrawing,dictSet):
                 ptsImage[3,0]=ptsFound[2,0]
                 ptsImage[3,1]=ptsFound[2,1]
             Mrot = cv2.getPerspectiveTransform(ptsImage,ptsCard)
-            rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][1],dictSet['box wh'][0]))
+            rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][0],dictSet['box wh'][1]))
+            #rotImage = cv2.warpPerspective(frame,Mrot,(dictSet['box wh'][1],dictSet['box wh'][0]))
             return(rotImage,frameForDrawing)
         else:
             return(np.array([0]),frameForDrawing)
@@ -1134,7 +1135,9 @@ while frameNumber<=totalFrames:
     if dictSet['flg ds'][0]==1:
         settingsFrame = np.zeros((300, 300, 3), np.uint8)
         settingsFrame=DisplaySomeSettings(dictSet,60,24,settingsFrame,5,0.6)
-        cv2.imshow('Settings', settingsFrame)
+        #cv2.imshow('Settings', settingsFrame)
+        if dictSet['SET ds'][2]!=0:
+            displayFrame=OpenCVComposite(settingsFrame, displayFrame,dictSet['SET ds'])
     elif dictSet['flg ds'][0]==2:
         settingsFrame = np.zeros((1080, 300, 3), np.uint8)
         settingsFrame=DisplayAllSettings(dictSet,20,8,settingsFrame,0.2)
@@ -1218,7 +1221,7 @@ if (saveSettings=="Y") | (saveSettings=="y"):
     settingsFile.write(outString)
     settingsFile.close()
 
-if videoFlag==False:
+if (videoFlag==False) and (frameNumber>0):
     saveSettings = input("Save frame values (Y/n)?")
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
@@ -1232,6 +1235,6 @@ if grabCount!=0:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'grabbedData' ,defaultextension='.xlsx')
+        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'_grabbedData' ,defaultextension='.xlsx')
         #WriteSingleFrameDataToExcel(grabbedStats[:,:,0,:],roiList,data_file_path)
         WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
