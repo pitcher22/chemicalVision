@@ -1160,7 +1160,11 @@ while frameNumber<=totalFrames:
             absorbanceFlag=False
     
     if keypress == ord('g'):
-        cv2.imwrite(video_file_dir+'/'+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+        
+        if liveFlag:
+            cv2.imwrite(os.getcwd()+'\grabbed_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+        else:
+            cv2.imwrite(video_file_dir+'/'+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
         grabCount=grabCount+1
         
