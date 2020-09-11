@@ -804,7 +804,7 @@ def WriteMultiFrameDataToExcel(parameterStats,roiNumber,outExcelFileName):
     dfStdev=pd.DataFrame(data=parameterStats[0:12,1,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
     dfMost=pd.DataFrame(data=parameterStats[0:12,2,dfCollected,roiNumber].transpose(),columns=["R","G","B","H","S","V","L*","a*","b*","Ra","Ga","Ba"],index=parameterStats[31,0,dfCollected,1])
     writer = pd.ExcelWriter(outExcelFileName, engine='xlsxwriter')
-    workbook  = writer.book
+    #workbook  = writer.book
     dfMean.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=9,index=False)
     dfStdev.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=22,index=False)
     dfMost.to_excel(writer, sheet_name='FrameData',startrow=1,startcol=35,index=False)
@@ -828,7 +828,7 @@ def WriteMultiFrameDataToExcel(parameterStats,roiNumber,outExcelFileName):
     worksheetData.write_column('F3', parameterStats[14,0,dfCollected,roiNumber])
     worksheetData.write_column('G3', parameterStats[15,0,dfCollected,roiNumber])
     worksheetData.write_column('H3', parameterStats[16,0,dfCollected,roiNumber])
-    workbook.close()
+    #workbook.close()
     writer.save()
 
 def WriteSingleFrameDataToExcel(frameStats,roiList,outExcelFileName):
@@ -983,7 +983,7 @@ else:
     liveFlag=True
     outFileName=os.getcwd()+'\\Processed.avi'
     #outFileName=os.getcwd()+'\\'+time.ctime()+'_Processed.avi'
-    cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
+    cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
     if dictSet['CM2 en'][0]!=-1:
         cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0]))
     if dictSet['CM3 en'][0]!=-1:
@@ -1059,6 +1059,13 @@ while frameNumber<=totalFrames:
             break
     else:
         frame = np.copy(originalFrame)
+    
+    if dictSet['FRM or'][0]==1:
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    elif dictSet['FRM or'][0]==2:
+        frame = cv2.rotate(frame, cv2.ROTATE_180)
+    elif dictSet['FRM or'][0]==3:
+        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         
     #parameterStats[31,0,frameNumber,:]=currentTime
 
@@ -1069,18 +1076,27 @@ while frameNumber<=totalFrames:
     if dictSet['PRE ds'][2]!=0:
         displayFrame=OpenCVComposite(frame, displayFrame,dictSet['PRE ds'])
 
-    if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=-1) and (liveFlag):
-        frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
-        displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
-        if dictSet['7SG ds'][2]!=0:
-            decodeFrame = np.zeros((300, 200, 3), np.uint8)
-            mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
-            displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7SG ds'])
-        else:
-            mass=-1
+    # if (dictSet['CM2 ds'][2]!=0) & (dictSet['CM2 en'][0]!=-1) and (liveFlag):
+    #     frameCrop2=frame2[dictSet['CM2 xy'][0]:dictSet['CM2 xy'][0]+dictSet['CM2 wh'][0],dictSet['CM2 xy'][1]:dictSet['CM2 xy'][1]+dictSet['CM2 wh'][1],:]
+    #     displayFrame=OpenCVComposite(frameCrop2, displayFrame,dictSet['CM2 ds'])
+    #     if dictSet['7SG ds'][2]!=0:
+    #         decodeFrame = np.zeros((300, 200, 3), np.uint8)
+    #         mass,decodeFrame=OpenCVDecodeSevenSegment(frameCrop2,decodeFrame,dictSet)
+    #         displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7SG ds'])
+    #     else:
+    #         mass=-1
+    # else:
+    #     mass=-1
+    
+    if (dictSet['7SG ds'][2]!=0) and (liveFlag):
+        frame7SG=frame[dictSet['7SG xy'][1]:dictSet['7SG xy'][1]+dictSet['7SG wh'][1],dictSet['7SG xy'][0]:dictSet['7SG xy'][0]+dictSet['7SG wh'][0],:]
+        displayFrame=OpenCVComposite(frame7SG, displayFrame,dictSet['7SG ds'])
+        decodeFrame = np.zeros((300, 200, 3), np.uint8)
+        mass,decodeFrame=OpenCVDecodeSevenSegment(frame7SG,decodeFrame,dictSet)
+        displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7DC ds'])
     else:
         mass=-1
-        
+    
     if (dictSet['CM3 ds'][2]!=0) & (dictSet['CM3 en'][0]!=-1) and (liveFlag):
         frameCrop3=frame3[dictSet['CM3 xy'][0]:dictSet['CM3 xy'][0]+dictSet['CM3 wh'][0],dictSet['CM3 xy'][1]:dictSet['CM3 xy'][1]+dictSet['CM3 wh'][1],:]
         displayFrame=OpenCVComposite(frameCrop3, displayFrame,dictSet['CM3 ds'])
