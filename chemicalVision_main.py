@@ -140,10 +140,12 @@ root = tk.Tk()
 root.withdraw()
 root.wm_attributes('-topmost', 1)
 video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg | *.png'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
-video_file_pathSplit = os.path.split(video_file_path)
-video_file_dir=video_file_pathSplit[0]
-video_file_file=video_file_pathSplit[1]
-video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
+if len(video_file_path)!=0:
+    video_file_pathSplit = os.path.split(video_file_path)
+    video_file_dir=video_file_pathSplit[0]
+    video_file_file=video_file_pathSplit[1]
+    video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
+
 
 localFlag=True
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
@@ -983,12 +985,22 @@ else:
     liveFlag=True
     outFileName=os.getcwd()+'\\Processed.avi'
     #outFileName=os.getcwd()+'\\'+time.ctime()+'_Processed.avi'
-    cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
+    if versionOS=='W':
+        cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
+    else:
+        cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
     if dictSet['CM2 en'][0]!=-1:
-        cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0])+cv2.CAP_DSHOW)
+        if versionOS=='W':
+            cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0])+cv2.CAP_DSHOW)
+        else:
+            cap2 = cv2.VideoCapture(int(dictSet['CM2 en'][0]))
+
     if dictSet['CM3 en'][0]!=-1:
-        cap3 = cv2.VideoCapture(int(dictSet['CM3 en'][0])+cv2.CAP_DSHOW)
-    #cap = cv2.VideoCapture(0)
+        if versionOS=='W':
+            cap3 = cv2.VideoCapture(int(dictSet['CM3 en'][0])+cv2.CAP_DSHOW)
+        else:
+            cap3 = cv2.VideoCapture(int(dictSet['CM3 en'][0]))
+   #cap = cv2.VideoCapture(0)
     if dictSet['CAM en'][1]==1:
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
@@ -1189,7 +1201,10 @@ while frameNumber<=totalFrames:
     if changeCameraFlag and dictSet['CAM en'][1]==1:
         if dictSet['CAM en'][2]==1:
             cap.release()
-            cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
+            if versionOS=='W':
+                cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
+            else:
+                cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
         ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
