@@ -67,7 +67,7 @@ if versionOS=='W':
     upArrow=2490368
     rtArrow=2555904
     dnArrow=2621440
-    filePathEmail=os.getcwd()+'\\EmailedVideo'
+    filePathImage=os.getcwd()+'\\ImageFiles'
     filePathSettings=os.getcwd()+'\\Settings'
     osSep='\\'
     #fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -80,7 +80,7 @@ elif versionOS=='L':
     upArrow=65362
     rtArrow=65363
     dnArrow=65364
-    filePathEmail=os.getcwd()+'/EmailedVideo'
+    filePathImage=os.getcwd()+'/ImageFiles'
     filePathSettings=os.getcwd()+'/Settings'
     osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -89,10 +89,11 @@ elif versionOS=='M':
     upArrow=82
     rtArrow=83
     dnArrow=84
-    filePathEmail=os.getcwd()+'/EmailedVideo'
+    filePathImage=os.getcwd()+'/ImageFiles'
     filePathSettings=os.getcwd()+'/Settings'
     osSep='/'
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+filePathImageProcessed=filePathImage+osSep+'Processed'
 
 font = cv2.FONT_HERSHEY_SIMPLEX
   
@@ -139,13 +140,16 @@ for chan in range(256):
 root = tk.Tk()
 root.withdraw()
 root.wm_attributes('-topmost', 1)
-video_file_path = askopenfilename(initialdir=os.getcwd(),filetypes=[('image files', '*.jpg | *.jpeg | *.png'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
+video_file_path = askopenfilename(initialdir=filePathImage,filetypes=[('image files', '*.jpg | *.jpeg | *.png'),('video files', '*.mp4 | *.mkv | *.avi'),('all files', '.*')])
 if len(video_file_path)!=0:
     video_file_pathSplit = os.path.split(video_file_path)
     video_file_dir=video_file_pathSplit[0]
     video_file_file=video_file_pathSplit[1]
     video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
-
+else:
+    video_file_dir=os.getcwd()
+    video_file_file="defaultVideo.jpg"
+    video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
 
 localFlag=True
 useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
@@ -1047,8 +1051,9 @@ outp = cv2.VideoWriter(outFileName,fourcc, frameRate, (dictSet['dsp wh'][0], dic
 while frameNumber<=totalFrames:
 #for frameNumber in range(totalFrames):
     if videoFlag:
-        cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
-        frameRate=cap.get(cv2.CAP_PROP_FPS)
+        if liveFlag!=True: #Lab #1 (Pennies)=T
+            cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
+            frameRate=cap.get(cv2.CAP_PROP_FPS)
         if (dictSet['frm av'][0]>1):
             ret, frame = cap.read() 
             frameAcc=np.zeros((frame.shape), np.uint32)
@@ -1190,9 +1195,9 @@ while frameNumber<=totalFrames:
     if keypress == ord('g'):
         
         if liveFlag:
-            cv2.imwrite(os.getcwd()+'\grabbed_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+            cv2.imwrite(filePathImageProcessed+osSep+'grabbed_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         else:
-            cv2.imwrite(video_file_dir+'/'+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+            cv2.imwrite(video_file_dir+osSep+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
         grabCount=grabCount+1
         
@@ -1244,7 +1249,7 @@ saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
     root.withdraw()
-    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set',initialfile=video_file_filename)
+    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set')
     settingsFile = open(settings_file_path,'w')
     sortedDictSet = sorted(dictSet)
     outString = '{' + "\n"
@@ -1261,7 +1266,7 @@ if (videoFlag==False) and (frameNumber>0):
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'frameData',defaultextension='.xlsx')
+        data_file_path = asksaveasfilename(initialdir=filePathImageProcessed,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'frameData',defaultextension='.xlsx')
         WriteSingleFrameDataToExcel(parameterStats[:,:,frameNumber,:],roiList,data_file_path)
         #WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
         
@@ -1270,6 +1275,6 @@ if grabCount!=0:
     if (saveSettings=="Y") | (saveSettings=="y"):
         root = tk.Tk()
         root.withdraw()
-        data_file_path = asksaveasfilename(initialdir=video_file_dir,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'_grabbedData' ,defaultextension='.xlsx')
+        data_file_path = asksaveasfilename(initialdir=filePathImageProcessed,filetypes=[('Excel files', '.xlsx'),('all files', '.*')],initialfile=video_file_filename+'_grabbedData' ,defaultextension='.xlsx')
         #WriteSingleFrameDataToExcel(grabbedStats[:,:,0,:],roiList,data_file_path)
         WriteMultiFrameDataToExcel(grabbedStats[:,:,0:grabCount,:],0,data_file_path)
