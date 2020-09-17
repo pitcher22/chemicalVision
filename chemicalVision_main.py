@@ -223,6 +223,8 @@ def FindContoursInside(mask,boundingContour,areaMin,areaMax,drawColor,frameForDr
     return(ptsFound[0:circleIndex,:])
 
 def RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC2,boxC3,boxC4,boxOR,boxWH):
+    if frame.size<=1:
+        return(np.array([0]),frameForDrawing)
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     boxMask = cv2.inRange(hsvFrame, np.array(boxLL), np.array(boxUL)) 
     outerBoxContour,boxArea,boxBoundingRectangle=FindLargestContour(boxMask)
@@ -1109,8 +1111,11 @@ while frameNumber<=totalFrames:
         frame7SG=frame[dictSet['7SG xy'][1]:dictSet['7SG xy'][1]+dictSet['7SG wh'][1],dictSet['7SG xy'][0]:dictSet['7SG xy'][0]+dictSet['7SG wh'][0],:]
         displayFrame=OpenCVComposite(frame7SG, displayFrame,dictSet['7SG ds'])
         decodeFrame = np.zeros((300, 200, 3), np.uint8)
-        mass,decodeFrame=OpenCVDecodeSevenSegment(frame7SG,decodeFrame,dictSet)
-        displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7DC ds'])
+        if frame7SG.size>0:
+            mass,decodeFrame=OpenCVDecodeSevenSegment(frame7SG,decodeFrame,dictSet)
+            displayFrame=OpenCVComposite(decodeFrame, displayFrame,dictSet['7DC ds'])
+        else:
+            mass=-1
     else:
         mass=-1
     
@@ -1197,7 +1202,7 @@ while frameNumber<=totalFrames:
         if liveFlag:
             cv2.imwrite(filePathImageProcessed+osSep+'grabbed_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         else:
-            cv2.imwrite(video_file_dir+osSep+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+            cv2.imwrite(video_file_dir+osSep+'Processed'+osSep+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
         grabCount=grabCount+1
         
