@@ -57,6 +57,7 @@ if versionPython==2:
     from tkFileDialog import askopenfilename
     from tkFileDialog import asksaveasfilename
     input=raw_input
+
 else:
     import tkinter as tk
     from tkinter.filedialog import askopenfilename
@@ -152,29 +153,18 @@ else:
     video_file_filename, video_file_file_extension = os.path.splitext(video_file_file)
 
 localFlag=True
-useFile = input("Use settings saved in a file (f/F), or default (d/D)?")
-#read a limits file as well here to set upperLimitString
-if (useFile=="f") | (useFile=="F"):
-    #include option of reading a default file on error
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes('-topmost', 1)
-    settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
-    settingsFile = open(settings_file_path,'r')
-    settingString=settingsFile.read()
-    settingsFile.close()
-    dictSet=eval(settingString)
-    print(dictSet)
-    #ActiveState="Process"
-else:
-    settingsFile = open(filePathSettings+osSep+"default_settings.set",'r')
-    settingString=settingsFile.read()
-    settingsFile.close()
-    dictSet=eval(settingString)
-#settingsFile = open(filePathSettings+osSep+"upper_limit_settings.set",'r')
-#settingString=settingsFile.read()
-#settingsFile.close()
-#dictUL=eval(settingString)
+
+root = tk.Tk()
+root.withdraw()
+root.wm_attributes('-topmost', 1)
+settings_file_path = askopenfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')])
+if len(settings_file_path)==0:
+    settings_file_path=filePathSettings+osSep+"default_settings.set"
+settingsFile = open(settings_file_path,'r')
+settingString=settingsFile.read()
+settingsFile.close()
+dictSet=eval(settingString)
+print('Running, press "q" to quit')
 
 def FindLargestContour(mask):
     if float(float(cv2.__version__[0])+float(cv2.__version__[2])/10)>=4:
@@ -222,7 +212,7 @@ def FindContoursInside(mask,boundingContour,areaMin,areaMax,drawColor,frameForDr
                     cv2.circle(frameForDrawing,(int(cx),int(cy)), 2, drawColor, -1)
     return(ptsFound[0:circleIndex,:])
 
-def RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC2,boxC3,boxC4,boxOR,boxWH):
+def RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC2,boxC3,boxC4,boxOR,boxWH,epsilonWeight=0.1):
     if frame.size<=1:
         return(np.array([0]),frameForDrawing)
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -232,7 +222,7 @@ def RegisterImageColorRectangleFlex(frame,frameForDrawing,boxLL,boxUL,boxC1,boxC
         return(np.array([0]),frameForDrawing)
     if outerBoxContour.size!=0:
         cv2.drawContours(frameForDrawing,[outerBoxContour],0,(255,0,255),10)
-        epsilon = 0.1*cv2.arcLength(outerBoxContour,True)
+        epsilon = epsilonWeight*cv2.arcLength(outerBoxContour,True)
         approx = cv2.approxPolyDP(outerBoxContour,epsilon,True)
         approx=approx[:,0,:]
         if approx.shape[0]!=4:
@@ -874,7 +864,7 @@ def WriteSingleFrameDataToExcel(frameStats,roiList,outExcelFileName):
 def OpenCVDecodeSevenSegment(massFrame,decodeFrame,dictSet):
     massFrame = cv2.GaussianBlur(massFrame,(5,5),0)
     massDisplay=np.copy(massFrame)
-    rotImage,massDisplay = RegisterImageColorRectangleFlex(massFrame,massDisplay,dictSet['7F1 ll'],dictSet['7F1 ul'],dictSet['7C1 xy'],dictSet['7C2 xy'],dictSet['7C3 xy'],dictSet['7C4 xy'],dictSet['7RT or'],dictSet['7BX wh'])
+    rotImage,massDisplay = RegisterImageColorRectangleFlex(massFrame,massDisplay,dictSet['7F1 ll'],dictSet['7F1 ul'],dictSet['7C1 xy'],dictSet['7C2 xy'],dictSet['7C3 xy'],dictSet['7C4 xy'],dictSet['7RT or'],dictSet['7BX wh'],epsilonWeight=dictSet['7SG ew'][0]/1000)
     if rotImage.size<=1:
         return -1,decodeFrame
     if dictSet['flg di'][0]==1:
@@ -1010,15 +1000,18 @@ else:
     if dictSet['CAM en'][1]==1:
         ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
         ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+        if dictSet['CAM ex'][0]==1:
+            ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+            ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+            ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+            ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+            ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+        if dictSet['CAM fo'][0]==1:    
+            ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+            ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+        if dictSet['CAM wb'][0]==1:
+            ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+            ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     totalFrames=10000
 
 parameterStats=np.zeros((32,6,totalFrames,60))
@@ -1051,9 +1044,8 @@ else:
 outp = cv2.VideoWriter(outFileName,fourcc, frameRate, (dictSet['dsp wh'][0], dictSet['dsp wh'][1]))
     
 while frameNumber<=totalFrames:
-#for frameNumber in range(totalFrames):
     if videoFlag:
-        if liveFlag!=True: #Lab #1 (Pennies)=T
+        if liveFlag!=True:
             cap.set(cv2.CAP_PROP_POS_FRAMES,frameNumber)
             frameRate=cap.get(cv2.CAP_PROP_FPS)
         if (dictSet['frm av'][0]>1):
@@ -1078,7 +1070,6 @@ while frameNumber<=totalFrames:
             break
     else:
         frame = np.copy(originalFrame)
-    
     if dictSet['FRM or'][0]==1:
         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     elif dictSet['FRM or'][0]==2:
@@ -1215,17 +1206,21 @@ while frameNumber<=totalFrames:
                 cap = cv2.VideoCapture(int(dictSet['CAM en'][0])+cv2.CAP_DSHOW)
             else:
                 cap = cv2.VideoCapture(int(dictSet['CAM en'][0]))
-        ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
-        ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
-        ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
-        ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
-        ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
-        ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
-        ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
-        ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
-        ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
-        ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
+        if dictSet['CAM en'][1]==1:
+            ret=cap.set(cv2.CAP_PROP_FRAME_WIDTH,dictSet['CAM wh'][0])
+            ret=cap.set(cv2.CAP_PROP_FRAME_HEIGHT,dictSet['CAM wh'][1])
+            if dictSet['CAM ex'][0]==1:
+                ret=cap.set(cv2.CAP_PROP_BRIGHTNESS,dictSet['CAM bc'][0])
+                ret=cap.set(cv2.CAP_PROP_CONTRAST,dictSet['CAM bc'][1])
+                ret=cap.set(cv2.CAP_PROP_SATURATION,dictSet['CAM bc'][2])
+                ret=cap.set(cv2.CAP_PROP_AUTO_EXPOSURE,dictSet['CAM ex'][0])
+                ret=cap.set(cv2.CAP_PROP_EXPOSURE,dictSet['CAM ex'][1])
+            if dictSet['CAM fo'][0]==1:    
+                ret=cap.set(cv2.CAP_PROP_AUTOFOCUS,dictSet['CAM fo'][0])
+                ret=cap.set(cv2.CAP_PROP_FOCUS,dictSet['CAM fo'][1])
+            if dictSet['CAM wb'][0]==1:
+                ret=cap.set(cv2.CAP_PROP_AUTO_WB,dictSet['CAM wb'][0])
+                ret=cap.set(cv2.CAP_PROP_WB_TEMPERATURE,dictSet['CAM wb'][1])
     if (frameJump!=0) & (liveFlag==False):
         if np.abs(frameJump)==1:
             frameNumber=frameNumber+frameJump
@@ -1254,7 +1249,7 @@ saveSettings = input("Save current settings (Y/n)?")
 if (saveSettings=="Y") | (saveSettings=="y"):
     root = tk.Tk()
     root.withdraw()
-    settings_file_path = asksaveasfilename(initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set')
+    settings_file_path = asksaveasfilename(initialfile='New Settings',initialdir=filePathSettings,filetypes=[('settings files', '.set'),('all files', '.*')],defaultextension='.set')
     settingsFile = open(settings_file_path,'w')
     sortedDictSet = sorted(dictSet)
     outString = '{' + "\n"
