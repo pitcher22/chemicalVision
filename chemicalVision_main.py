@@ -1193,7 +1193,7 @@ while frameNumber<=totalFrames:
         if liveFlag:
             cv2.imwrite(filePathImageProcessed+osSep+'grabbed_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         else:
-            cv2.imwrite(video_file_dir+osSep+'Processed'+osSep+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
+            cv2.imwrite(video_file_dir+osSep+video_file_filename+'_displayFrame'+str(grabCount).zfill(3)+'.jpg', displayFrame)
         grabbedStats[:,:,grabCount,:]=parameterStats[:,:,frameNumber,:]
         grabCount=grabCount+1
         
